@@ -924,7 +924,7 @@ void SampleBase::RenderLoop() {
         // Events
         glfwPollEvents();
 
-        m_IsActive = glfwGetWindowAttrib(m_Window, GLFW_FOCUSED) != 0;
+        m_IsActive = glfwGetWindowAttrib(m_Window, GLFW_FOCUSED) != 0 && glfwGetWindowAttrib(m_Window, GLFW_ICONIFIED) == 0;
         if (!m_IsActive) {
             i--;
             continue;
