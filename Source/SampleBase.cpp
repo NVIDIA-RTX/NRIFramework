@@ -1,10 +1,7 @@
 // © 2021 NVIDIA Corporation
 
 #include "NRIFramework.h"
-
-#ifdef NRI_ENABLE_AGILITY_SDK_SUPPORT
-    #include "NRIAgilitySDK.h"
-#endif
+#include "NRIAgilitySDK.h"
 
 #if defined _WIN32
 #    define GLFW_EXPOSE_NATIVE_WIN32

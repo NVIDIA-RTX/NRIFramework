@@ -137,10 +137,6 @@ if(APPLE)
 endif()
 
 # NRIFramework
-if(NRI_ENABLE_AGILITY_SDK_SUPPORT)
-    set(COMPILE_DEFINITIONS ${COMPILE_DEFINITIONS} NRI_ENABLE_AGILITY_SDK_SUPPORT)
-endif()
-
 file(GLOB FRAMEWORK_SOURCE "Source/*.cpp" "Source/*.h")
 source_group("Source" FILES ${FRAMEWORK_SOURCE})
 file(GLOB FRAMEWORK_HEADERS "Include/*.hpp" "Include/*.h" "${cgltf_SOURCE_DIR}/cgltf.h")
