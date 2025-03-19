@@ -7,6 +7,28 @@
 #define NRI_FRAMEWORK_VERSION_DATE "5 February 2025"
 #define NRI_FRAMEWORK 1
 
+// Platform detection
+#define NRIF_WINDOWS 0
+#define NRIF_X11 1
+#define NRIF_WAYLAND 2
+#define NRIF_COCOA 3
+
+#if defined(_WIN32)
+#    define NRIF_PLATFORM NRIF_WINDOWS
+#    define GLFW_EXPOSE_NATIVE_WIN32
+#elif defined(__APPLE__)
+#    define NRIF_PLATFORM NRIF_COCOA
+#    define GLFW_EXPOSE_NATIVE_COCOA
+#elif (defined(__linux__) && NRIF_USE_WAYLAND)
+#    define NRIF_PLATFORM NRIF_WAYLAND
+#    define GLFW_EXPOSE_NATIVE_WAYLAND
+#elif (defined(__linux__))
+#    define NRIF_PLATFORM NRIF_X11
+#    define GLFW_EXPOSE_NATIVE_X11
+#else
+#    error "Unknown platform"
+#endif
+
 #include <array>
 #include <string>
 #include <vector>
