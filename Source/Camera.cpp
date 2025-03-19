@@ -26,9 +26,9 @@ void Camera::Update(const CameraDesc& desc, uint32_t frameIndex) {
     projFlags |= desc.isPositiveZ ? PROJ_LEFT_HANDED : 0;
 
     // Position
-    const float3 vRight = state.mWorldToView.GetRow0().xyz;
-    const float3 vUp = state.mWorldToView.GetRow1().xyz;
-    const float3 vForward = state.mWorldToView.GetRow2().xyz;
+    const float3 vRight = state.mWorldToView.Row(0).xyz;
+    const float3 vUp = state.mWorldToView.Row(1).xyz;
+    const float3 vForward = state.mWorldToView.Row(2).xyz;
 
     float3 delta = desc.dLocal * desc.timeScale;
     delta.z *= desc.isPositiveZ ? 1.0f : -1.0f;
@@ -42,7 +42,7 @@ void Camera::Update(const CameraDesc& desc, uint32_t frameIndex) {
         state.globalPosition = clamp(state.globalPosition, double3(desc.limits.vMin), double3(desc.limits.vMax));
 
     if (desc.isCustomMatrixSet) {
-        const float3 vCustomRight = desc.customMatrix.GetRow3().xyz;
+        const float3 vCustomRight = desc.customMatrix.Row(3).xyz;
         state.globalPosition = double3(vCustomRight);
     }
 
@@ -73,7 +73,7 @@ void Camera::Update(const CameraDesc& desc, uint32_t frameIndex) {
         state.mViewToWorld.SetupByRotationYPR(radians(state.rotation.x), radians(state.rotation.y), radians(state.rotation.z));
 
     state.mWorldToView = state.mViewToWorld;
-    state.mWorldToView.PreTranslation(float3(state.mWorldToView.GetRow2().xyz) * desc.backwardOffset);
+    state.mWorldToView.PreTranslation(float3(state.mWorldToView.Row(2).xyz) * desc.backwardOffset);
     state.mWorldToView.WorldToView(projFlags);
     state.mWorldToView.PreTranslation(-state.position);
 
