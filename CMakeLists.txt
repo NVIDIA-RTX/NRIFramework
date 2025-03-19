@@ -62,6 +62,7 @@ FetchContent_Declare(
 list(APPEND DEPS imgui)
 
 # GLFW
+option(GLFW_BUILD_WAYLAND "" OFF)
 option(GLFW_BUILD_EXAMPLES "" OFF)
 option(GLFW_BUILD_TESTS "" OFF)
 option(GLFW_BUILD_DOCS "" OFF)
@@ -119,6 +120,7 @@ target_compile_definitions(detex PRIVATE ${COMPILE_DEFINITIONS})
 set_property(TARGET detex PROPERTY FOLDER "${PROJECT_NAME}")
 
 # External/NRI
+option(NRI_ENABLE_WAYLAND_SUPPORT "" OFF)
 add_subdirectory("External/NRI")
 
 # External/MathLib
