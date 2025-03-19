@@ -892,9 +892,11 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
         return false;
     }
 
+#if (NRIF_PLATFORM != NRIF_WAYLAND)
     int32_t x = (screenW - m_WindowResolution.x) >> 1;
     int32_t y = (screenH - m_WindowResolution.y) >> 1;
-    glfwSetWindowPos(m_Window, x, y);
+    glfwSetWindowPos(m_Window, x, y); // GLFW error[65548]: Wayland: The platform does not support setting the window position
+#endif
 
 #if (NRIF_PLATFORM == NRIF_WINDOWS)
     m_NRIWindow.windows.hwnd = glfwGetWin32Window(m_Window);

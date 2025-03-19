@@ -48,7 +48,7 @@ endif()
 # Compile definitions
 if(WIN32)
     set(COMPILE_DEFINITIONS WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS)
-elseif (NRIF_USE_WAYLAND)
+elseif(NRIF_USE_WAYLAND)
     set(COMPILE_DEFINITIONS NRIF_USE_WAYLAND=1)
 endif()
 
@@ -168,6 +168,12 @@ elseif(UNIX)
         ${CMAKE_DL_LIBS}
         pthread
         X11
+    )
+endif()
+
+if(NRIF_USE_WAYLAND) # TODO: looks like a workaround...
+    target_include_directories(${PROJECT_NAME} PRIVATE
+        "/usr/include/wayland"
     )
 endif()
 
