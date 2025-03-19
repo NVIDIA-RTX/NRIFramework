@@ -650,7 +650,7 @@ static const cgltf_image* ParseDdsImage(const cgltf_texture* texture, const cglt
 }
 
 void DecomposeAffine(const float4x4& transform, float3& translation, float4& rotation, float3& scale) {
-    translation = float3(transform.Col(3).xyz);
+    translation = transform.Col(3).xyz;
 
     float3 col0 = transform.Col(0).xyz;
     float3 col1 = transform.Col(1).xyz;
