@@ -16,6 +16,7 @@ if(NOT IS_SUBMODULE)
 endif()
 
 set(NRIF_SHADERS_PATH "" CACHE STRING "Shader output path override")
+option(NRIF_USE_WAYLAND "Use Wayland instead of X11 on Linux" OFF)
 
 # Create project
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/Include/NRIFramework.h" ver_h)
@@ -47,6 +48,8 @@ endif()
 # Compile definitions
 if(WIN32)
     set(COMPILE_DEFINITIONS WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS)
+elseif (NRIF_USE_WAYLAND)
+    set(COMPILE_DEFINITIONS NRIF_USE_WAYLAND=1)
 endif()
 
 # Download dependencies
@@ -62,7 +65,7 @@ FetchContent_Declare(
 list(APPEND DEPS imgui)
 
 # GLFW
-option(GLFW_BUILD_WAYLAND "" OFF)
+option(GLFW_BUILD_WAYLAND "" ${NRIF_USE_WAYLAND})
 option(GLFW_BUILD_EXAMPLES "" OFF)
 option(GLFW_BUILD_TESTS "" OFF)
 option(GLFW_BUILD_DOCS "" OFF)
@@ -120,7 +123,7 @@ target_compile_definitions(detex PRIVATE ${COMPILE_DEFINITIONS})
 set_property(TARGET detex PROPERTY FOLDER "${PROJECT_NAME}")
 
 # External/NRI
-option(NRI_ENABLE_WAYLAND_SUPPORT "" OFF)
+option(NRI_ENABLE_WAYLAND_SUPPORT "" ${NRIF_USE_WAYLAND})
 add_subdirectory("External/NRI")
 
 # External/MathLib

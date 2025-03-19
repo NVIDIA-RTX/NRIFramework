@@ -2,27 +2,38 @@
 
 #include "NRIFramework.h"
 
-#ifdef _WIN32
-#    include "NRIAgilitySDK.h"
-#endif
+#define NRIF_WINDOWS 0
+#define NRIF_X11 1
+#define NRIF_WAYLAND 2
+#define NRIF_COCOA 3
 
-#if defined _WIN32
+#if defined(_WIN32)
+#    define NRIF_PLATFORM NRIF_WINDOWS
 #    define GLFW_EXPOSE_NATIVE_WIN32
-#elif defined __linux__
-#    define GLFW_EXPOSE_NATIVE_X11
-#elif defined __APPLE__
+#elif defined(__APPLE__)
+#    define NRIF_PLATFORM NRIF_COCOA
 #    define GLFW_EXPOSE_NATIVE_COCOA
-#    include "MetalUtility/MetalUtility.h"
+#elif (defined(__linux__) && NRIF_USE_WAYLAND)
+#    define NRIF_PLATFORM NRIF_WAYLAND
+#    define GLFW_EXPOSE_NATIVE_WAYLAND
+#elif (defined(__linux__))
+#    define NRIF_PLATFORM NRIF_X11
+#    define GLFW_EXPOSE_NATIVE_X11
 #else
 #    error "Unknown platform"
 #endif
-#include "GLFW/glfw3native.h"
 
-#if defined(__linux__) || defined(__APPLE__)
+#if (NRIF_PLATFORM == NRIF_WINDOWS)
+#    include "NRIAgilitySDK.h"
+#else
 #    include <csignal>
 #endif
 
-#include <thread>
+#if (NRIF_PLATFORM == NRIF_COCOA)
+#    include "MetalUtility/MetalUtility.h"
+#endif
+
+#include "GLFW/glfw3native.h"
 
 template <typename T>
 constexpr void MaybeUnused([[maybe_unused]] const T& arg) {
@@ -35,7 +46,7 @@ void DestroyDebugAllocator(nri::AllocationCallbacks& allocationCallbacks);
 // MEMORY
 //==================================================================================================================================================
 
-#if _WIN32
+#if (NRIF_PLATFORM == NRIF_WINDOWS)
 
 void* __CRTDECL operator new(size_t size) {
     return _aligned_malloc(size, DEFAULT_MEMORY_ALIGNMENT);
@@ -278,7 +289,7 @@ static ImGuiKey RemapKey(int32_t key) {
 
 static void GLFW_ErrorCallback(int32_t error, const char* message) {
     printf("GLFW error[%d]: %s\n", error, message);
-#if _WIN32
+#if (NRIF_PLATFORM == NRIF_WINDOWS)
     DebugBreak();
 #else
     raise(SIGTRAP);
@@ -885,12 +896,15 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     int32_t y = (screenH - m_WindowResolution.y) >> 1;
     glfwSetWindowPos(m_Window, x, y);
 
-#if _WIN32
+#if (NRIF_PLATFORM == NRIF_WINDOWS)
     m_NRIWindow.windows.hwnd = glfwGetWin32Window(m_Window);
-#elif __linux__
+#elif (NRIF_PLATFORM == NRIF_WAYLAND)
+    m_NRIWindow.wayland.display = glfwGetWaylandDisplay();
+    m_NRIWindow.wayland.surface = glfwGetWaylandWindow(m_Window);
+#elif (NRIF_PLATFORM == NRIF_X11)
     m_NRIWindow.x11.dpy = glfwGetX11Display();
     m_NRIWindow.x11.window = glfwGetX11Window(m_Window);
-#elif __APPLE__
+#elif (NRIF_PLATFORM == NRIF_COCOA)
     m_NRIWindow.metal.caMetalLayer = GetMetalLayer(m_Window);
 #endif
 
@@ -959,14 +973,14 @@ void SampleBase::RenderLoop() {
 void SampleBase::CursorMode(int32_t mode) {
     if (mode == GLFW_CURSOR_NORMAL) {
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-#if defined(_WIN32)
+#if (NRIF_PLATFORM == NRIF_WINDOWS)
         // GLFW works with cursor visibility incorrectly
         for (uint32_t n = 0; ::ShowCursor(1) < 0 && n < 256; n++)
             ;
 #endif
     } else {
         glfwSetInputMode(m_Window, GLFW_CURSOR, mode);
-#if defined(_WIN32)
+#if (NRIF_PLATFORM == NRIF_WINDOWS)
         // GLFW works with cursor visibility incorrectly
         for (uint32_t n = 0; ::ShowCursor(0) >= 0 && n < 256; n++)
             ;
@@ -975,7 +989,7 @@ void SampleBase::CursorMode(int32_t mode) {
 }
 
 void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
-#if _WIN32
+#if (NRIF_PLATFORM == NRIF_WINDOWS)
     std::string graphicsAPI = "D3D12";
 #else
     std::string graphicsAPI = "VULKAN";
@@ -1005,7 +1019,7 @@ void SampleBase::ReadCmdLineDefault(cmdline::parser& cmdLine) {
 }
 
 void SampleBase::EnableMemoryLeakDetection([[maybe_unused]] uint32_t breakOnAllocationIndex) {
-#if (defined(_DEBUG) && defined(_WIN32))
+#if (defined(_DEBUG) && NRIF_PLATFORM == NRIF_WINDOWS)
     int32_t flag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
     flag |= _CRTDBG_LEAK_CHECK_DF;
     _CrtSetDbgFlag(flag);
