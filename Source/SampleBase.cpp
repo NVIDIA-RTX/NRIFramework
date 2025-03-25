@@ -636,6 +636,8 @@ void SampleBase::DestroyUI(const nri::CoreInterface& NRI) {
     NRI.DestroyDescriptor(*m_FontShaderResource);
     NRI.DestroyTexture(*m_FontTexture);
     NRI.FreeMemory(*m_FontTextureMemory);
+
+    m_TimePrev = 0.0;
 }
 
 void SampleBase::BeginUI() {
