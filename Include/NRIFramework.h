@@ -65,7 +65,7 @@
 #include "Utils.h"
 
 // Settings
-constexpr nri::VKBindingOffsets VK_BINDING_OFFSETS = {100, 200, 300, 400}; // just ShaderMake defaults for simplicity
+constexpr nri::VKBindingOffsets VK_BINDING_OFFSETS = {0, 128, 32, 64}; // see CMake
 constexpr bool D3D11_COMMANDBUFFER_EMULATION = false;
 constexpr uint32_t DEFAULT_MEMORY_ALIGNMENT = 16;
 constexpr uint32_t BUFFERED_FRAME_MAX_NUM = 2;
