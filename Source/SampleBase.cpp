@@ -469,7 +469,6 @@ bool SampleBase::InitUI(const nri::CoreInterface& NRI, const nri::HelperInterfac
 
         nri::VertexStreamDesc vertexStreamDesc = {};
         vertexStreamDesc.bindingSlot = 0;
-        vertexStreamDesc.stride = sizeof(ImDrawVertOpt);
 
         nri::VertexAttributeDesc vertexAttributeDesc[3] = {};
         {
@@ -766,7 +765,13 @@ void SampleBase::RenderUI(const nri::CoreInterface& NRI, const nri::StreamerInte
 
     nri::Buffer* geometryBuffer = streamerInterface.GetStreamerDynamicBuffer(streamer);
     NRI.CmdSetIndexBuffer(commandBuffer, *geometryBuffer, m_IbOffset, sizeof(ImDrawIdx) == 2 ? nri::IndexType::UINT16 : nri::IndexType::UINT32);
-    NRI.CmdSetVertexBuffers(commandBuffer, 0, 1, &geometryBuffer, &m_VbOffset);
+
+    nri::VertexBufferDesc vertexBufferDesc = {};
+    vertexBufferDesc.buffer = geometryBuffer;
+    vertexBufferDesc.offset = m_VbOffset;
+    vertexBufferDesc.stride = sizeof(ImDrawVertOpt);
+
+    NRI.CmdSetVertexBuffers(commandBuffer, 0, &vertexBufferDesc, 1);
 
     const nri::Viewport viewport = {0.0f, 0.0f, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y, 0.0f, 1.0f};
     NRI.CmdSetViewports(commandBuffer, &viewport, 1);
