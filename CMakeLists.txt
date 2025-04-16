@@ -35,10 +35,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compile options
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+    set(SSE_FLAG -msse4.1)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(COMPILE_OPTIONS -msse4.1 -Wextra)
+    set(COMPILE_OPTIONS ${SSE_FLAG} -Wextra)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    set(COMPILE_OPTIONS -msse4.1 -Wextra)
+    set(COMPILE_OPTIONS ${SSE_FLAG} -Wextra)
 elseif(MSVC)
     set(COMPILE_OPTIONS /W4 /WX /wd4324)
 else()
