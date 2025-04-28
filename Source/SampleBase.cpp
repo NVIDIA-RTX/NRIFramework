@@ -443,7 +443,7 @@ bool SampleBase::InitUI(nri::Device& device) {
 
     int32_t fontWidth = 0, fontHeight = 0;
     uint8_t* fontPixels = nullptr;
-    io.Fonts->GetTexDataAsAlpha8(&fontPixels, &fontWidth, &fontHeight);
+    io.Fonts->GetTexDataAsRGBA32(&fontPixels, &fontWidth, &fontHeight);
 
     // Renderer
     nri::Result result = nri::nriGetInterface(device, NRI_INTERFACE(nri::ImguiInterface), &m_iImgui);
