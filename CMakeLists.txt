@@ -15,7 +15,6 @@ if(NOT IS_SUBMODULE)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/_Bin" CACHE STRING "")
 endif()
 
-set(NRIF_SHADERS_PATH "" CACHE STRING "Shader output path override")
 option(NRIF_USE_WAYLAND "Use Wayland instead of X11 on Linux" OFF)
 
 # Create project
@@ -92,19 +91,6 @@ FetchContent_Declare(
 )
 list(APPEND DEPS cgltf)
 
-# ShaderMake
-if(NOT TARGET ShaderMake)
-    set(SHADERMAKE_BIN_OUTPUT_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} CACHE STRING "")
-
-    FetchContent_Declare(
-        shadermake
-        GIT_REPOSITORY https://github.com/NVIDIA-RTX/ShaderMake.git
-        GIT_TAG main
-        GIT_SHALLOW 1
-    )
-    list(APPEND DEPS shadermake)
-endif()
-
 if(DEPS)
     message("NRI framework: downloading dependencies:")
     message(STATUS "${DEPS} ...")
@@ -128,6 +114,7 @@ set_property(TARGET detex PROPERTY FOLDER "${PROJECT_NAME}")
 
 # External/NRI
 option(NRI_ENABLE_WAYLAND_SUPPORT "" ${NRIF_USE_WAYLAND})
+option(NRI_ENABLE_IMGUI_EXTENSION "" ON)
 add_subdirectory("External/NRI")
 
 # External/MathLib
@@ -193,49 +180,3 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_compile_definitions(${PROJECT_NAME} PRIVATE ${COMPILE_DEFINITIONS})
 target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "${PROJECT_NAME}")
-
-# Shaders output directory
-if("${NRIF_SHADERS_PATH}" STREQUAL "")
-    set(NRIF_SHADERS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/_Shaders")
-endif()
-
-message("NRI framework shaders path: '${NRIF_SHADERS_PATH}'")
-
-# Shaders
-file(GLOB_RECURSE SHADERS "Shaders/*.hlsl")
-set_source_files_properties(${SHADERS} PROPERTIES VS_TOOL_OVERRIDE "None")
-
-set(SHADERMAKE_GENERAL_ARGS
-    --useAPI --flatten --stripReflection --WX
-    --sRegShift 0 --bRegShift 32 --uRegShift 64 --tRegShift 128
-    --binary
-    --sourceDir "Shaders"
-    --ignoreConfigDir
-    -c "Shaders/Shaders.cfg"
-    -o "${NRIF_SHADERS_PATH}"
-    -I "External/NRI/Include"
-    -I "External/MathLib"
-)
-
-if(WIN32)
-    add_custom_target(${PROJECT_NAME}Shaders ALL
-        COMMAND ShaderMake ${SHADERMAKE_GENERAL_ARGS} -p DXBC --compiler "${FXC_PATH}"
-        COMMAND ShaderMake ${SHADERMAKE_GENERAL_ARGS} -p DXIL --compiler "${DXC_PATH}"
-        COMMAND ShaderMake ${SHADERMAKE_GENERAL_ARGS} -p SPIRV --compiler "${DXC_SPIRV_PATH}"
-        DEPENDS ShaderMake
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        VERBATIM
-        SOURCES ${SHADERS}
-    )
-else()
-    add_custom_target(${PROJECT_NAME}Shaders ALL
-        COMMAND ShaderMake ${SHADERMAKE_GENERAL_ARGS} -p SPIRV --compiler "${DXC_SPIRV_PATH}"
-        DEPENDS ShaderMake
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        VERBATIM
-        SOURCES ${SHADERS}
-    )
-endif()
-
-set_property(TARGET ${PROJECT_NAME}Shaders PROPERTY FOLDER "${PROJECT_NAME}")
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}Shaders)

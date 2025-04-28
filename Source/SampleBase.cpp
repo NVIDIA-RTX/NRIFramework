@@ -402,8 +402,8 @@ struct ImDrawVertOpt {
     uint32_t col;
 };
 
-bool SampleBase::InitUI(const nri::CoreInterface& NRI, const nri::HelperInterface& helperInterface, nri::Device& device, nri::Format renderTargetFormat) {
-    // ImGui setup
+bool SampleBase::InitUI(nri::Device& device) {
+    // Setup
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -424,6 +424,7 @@ bool SampleBase::InitUI(const nri::CoreInterface& NRI, const nri::HelperInterfac
     ImGuiIO& io = ImGui::GetIO();
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors; // We can honor GetMouseCursor() values (optional)
     io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;  // We can honor io.WantSetMousePos requests (optional, rarely used)
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
     io.IniFilename = nullptr;
 
     m_MouseCursors[ImGuiMouseCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
@@ -435,99 +436,7 @@ bool SampleBase::InitUI(const nri::CoreInterface& NRI, const nri::HelperInterfac
     m_MouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR); // FIXME: GLFW doesn't have this.
     m_MouseCursors[ImGuiMouseCursor_Hand] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
 
-    const nri::DeviceDesc& deviceDesc = NRI.GetDeviceDesc(device);
-
-    // Pipeline
-    {
-        nri::DescriptorRangeDesc descriptorRanges[] = {
-            {0, 1, nri::DescriptorType::TEXTURE, nri::StageBits::FRAGMENT_SHADER},
-            {0, 1, nri::DescriptorType::SAMPLER, nri::StageBits::FRAGMENT_SHADER},
-        };
-
-        nri::DescriptorSetDesc descriptorSet = {0, descriptorRanges, helper::GetCountOf(descriptorRanges)};
-
-        nri::RootConstantDesc rootConstants = {};
-        rootConstants.registerIndex = 0;
-        rootConstants.size = 16;
-        rootConstants.shaderStages = nri::StageBits::ALL;
-
-        nri::PipelineLayoutDesc pipelineLayoutDesc = {};
-        pipelineLayoutDesc.descriptorSetNum = 1;
-        pipelineLayoutDesc.descriptorSets = &descriptorSet;
-        pipelineLayoutDesc.rootConstantNum = 1;
-        pipelineLayoutDesc.rootConstants = &rootConstants;
-        pipelineLayoutDesc.shaderStages = nri::StageBits::VERTEX_SHADER | nri::StageBits::FRAGMENT_SHADER;
-
-        if (NRI.CreatePipelineLayout(device, pipelineLayoutDesc, m_PipelineLayout) != nri::Result::SUCCESS)
-            return false;
-
-        utils::ShaderCodeStorage shaderCodeStorage;
-        nri::ShaderDesc shaders[] = {
-            utils::LoadShader(deviceDesc.graphicsAPI, "UI.vs", shaderCodeStorage),
-            utils::LoadShader(deviceDesc.graphicsAPI, "UI.fs", shaderCodeStorage),
-        };
-
-        nri::VertexStreamDesc vertexStreamDesc = {};
-        vertexStreamDesc.bindingSlot = 0;
-
-        nri::VertexAttributeDesc vertexAttributeDesc[3] = {};
-        {
-            vertexAttributeDesc[0].format = nri::Format::RG32_SFLOAT;
-            vertexAttributeDesc[0].streamIndex = 0;
-            vertexAttributeDesc[0].offset = helper::GetOffsetOf(&ImDrawVertOpt::pos);
-            vertexAttributeDesc[0].d3d = {"POSITION", 0};
-            vertexAttributeDesc[0].vk = {0};
-
-            vertexAttributeDesc[1].format = nri::Format::RG16_UNORM;
-            vertexAttributeDesc[1].streamIndex = 0;
-            vertexAttributeDesc[1].offset = helper::GetOffsetOf(&ImDrawVertOpt::uv);
-            vertexAttributeDesc[1].d3d = {"TEXCOORD", 0};
-            vertexAttributeDesc[1].vk = {1};
-
-            vertexAttributeDesc[2].format = nri::Format::RGBA8_UNORM;
-            vertexAttributeDesc[2].streamIndex = 0;
-            vertexAttributeDesc[2].offset = helper::GetOffsetOf(&ImDrawVertOpt::col);
-            vertexAttributeDesc[2].d3d = {"COLOR", 0};
-            vertexAttributeDesc[2].vk = {2};
-        }
-
-        nri::VertexInputDesc vertexInputDesc = {};
-        vertexInputDesc.attributes = vertexAttributeDesc;
-        vertexInputDesc.attributeNum = (uint8_t)helper::GetCountOf(vertexAttributeDesc);
-        vertexInputDesc.streams = &vertexStreamDesc;
-        vertexInputDesc.streamNum = 1;
-
-        nri::InputAssemblyDesc inputAssemblyDesc = {};
-        inputAssemblyDesc.topology = nri::Topology::TRIANGLE_LIST;
-
-        nri::RasterizationDesc rasterizationDesc = {};
-        rasterizationDesc.fillMode = nri::FillMode::SOLID;
-        rasterizationDesc.cullMode = nri::CullMode::NONE;
-
-        nri::ColorAttachmentDesc colorAttachmentDesc = {};
-        colorAttachmentDesc.format = renderTargetFormat;
-        colorAttachmentDesc.colorWriteMask = nri::ColorWriteBits::RGBA;
-        colorAttachmentDesc.blendEnabled = true;
-        colorAttachmentDesc.colorBlend = {nri::BlendFactor::SRC_ALPHA, nri::BlendFactor::ONE_MINUS_SRC_ALPHA, nri::BlendFunc::ADD};
-        colorAttachmentDesc.alphaBlend = {nri::BlendFactor::ONE_MINUS_SRC_ALPHA, nri::BlendFactor::ZERO, nri::BlendFunc::ADD};
-
-        nri::OutputMergerDesc outputMergerDesc = {};
-        outputMergerDesc.colors = &colorAttachmentDesc;
-        outputMergerDesc.colorNum = 1;
-
-        nri::GraphicsPipelineDesc graphicsPipelineDesc = {};
-        graphicsPipelineDesc.pipelineLayout = m_PipelineLayout;
-        graphicsPipelineDesc.vertexInput = &vertexInputDesc;
-        graphicsPipelineDesc.inputAssembly = inputAssemblyDesc;
-        graphicsPipelineDesc.rasterization = rasterizationDesc;
-        graphicsPipelineDesc.outputMerger = outputMergerDesc;
-        graphicsPipelineDesc.shaders = shaders;
-        graphicsPipelineDesc.shaderNum = helper::GetCountOf(shaders);
-
-        if (NRI.CreateGraphicsPipeline(device, graphicsPipelineDesc, m_Pipeline) != nri::Result::SUCCESS)
-            return false;
-    }
-
+    // Font
     ImFontConfig fontConfig = {};
     fontConfig.SizePixels = floor(13.0f * contentScale);
     io.Fonts->AddFontDefault(&fontConfig);
@@ -536,106 +445,30 @@ bool SampleBase::InitUI(const nri::CoreInterface& NRI, const nri::HelperInterfac
     uint8_t* fontPixels = nullptr;
     io.Fonts->GetTexDataAsAlpha8(&fontPixels, &fontWidth, &fontHeight);
 
-    // Texture
-    constexpr nri::Format format = nri::Format::R8_UNORM;
-
-    nri::TextureDesc textureDesc = {};
-    textureDesc.type = nri::TextureType::TEXTURE_2D;
-    textureDesc.format = format;
-    textureDesc.width = (uint16_t)fontWidth;
-    textureDesc.height = (uint16_t)fontHeight;
-    textureDesc.mipNum = 1;
-    textureDesc.usage = nri::TextureUsageBits::SHADER_RESOURCE;
-
-    if (NRI.CreateTexture(device, textureDesc, m_FontTexture) != nri::Result::SUCCESS)
-        return false;
-
-    nri::ResourceGroupDesc resourceGroupDesc = {};
-    resourceGroupDesc.memoryLocation = nri::MemoryLocation::DEVICE;
-    resourceGroupDesc.textureNum = 1;
-    resourceGroupDesc.textures = &m_FontTexture;
-
-    nri::Result result = helperInterface.AllocateAndBindMemory(device, resourceGroupDesc, &m_FontTextureMemory);
+    // Renderer
+    nri::Result result = nri::nriGetInterface(device, NRI_INTERFACE(nri::ImguiInterface), &m_iImgui);
     if (result != nri::Result::SUCCESS)
         return false;
 
-    // Descriptor - texture
-    nri::Texture2DViewDesc texture2DViewDesc = {m_FontTexture, nri::Texture2DViewType::SHADER_RESOURCE_2D, format};
-    if (NRI.CreateTexture2DView(texture2DViewDesc, m_FontShaderResource) != nri::Result::SUCCESS)
+    nri::ImguiDesc imguiDesc = {};
+    imguiDesc.fontAtlasData = fontPixels;
+    imguiDesc.fontAtlasDims = {(nri::Dim_t)fontWidth, (nri::Dim_t)fontHeight};
+
+    result = m_iImgui.CreateImgui(device, imguiDesc, m_ImguiRenderer);
+    if (result != nri::Result::SUCCESS)
         return false;
-
-    utils::Texture texture;
-    utils::LoadTextureFromMemory(format, fontWidth, fontHeight, fontPixels, texture);
-
-    // Descriptor - sampler
-    nri::SamplerDesc samplerDesc = {};
-    samplerDesc.anisotropy = 1;
-    samplerDesc.addressModes = {nri::AddressMode::REPEAT, nri::AddressMode::REPEAT};
-    samplerDesc.filters.min = contentScale > 1.25f ? nri::Filter::NEAREST : nri::Filter::LINEAR;
-    samplerDesc.filters.mag = contentScale > 1.25f ? nri::Filter::NEAREST : nri::Filter::LINEAR;
-    samplerDesc.filters.mip = contentScale > 1.25f ? nri::Filter::NEAREST : nri::Filter::LINEAR;
-
-    if (NRI.CreateSampler(device, samplerDesc, m_Sampler) != nri::Result::SUCCESS)
-        return false;
-
-    // Upload data
-    nri::Queue* queue = nullptr;
-    NRI.GetQueue(device, nri::QueueType::GRAPHICS, 0, queue);
-    {
-        nri::TextureSubresourceUploadDesc subresource = {};
-        texture.GetSubresource(subresource, 0);
-
-        nri::TextureUploadDesc textureData = {};
-        textureData.subresources = &subresource;
-        textureData.texture = m_FontTexture;
-        textureData.after = {nri::AccessBits::SHADER_RESOURCE, nri::Layout::SHADER_RESOURCE};
-
-        if (helperInterface.UploadData(*queue, &textureData, 1, nullptr, 0) != nri::Result::SUCCESS)
-            return false;
-    }
-
-    // Descriptor pool
-    {
-        nri::DescriptorPoolDesc descriptorPoolDesc = {};
-        descriptorPoolDesc.descriptorSetMaxNum = 1;
-        descriptorPoolDesc.textureMaxNum = 1;
-        descriptorPoolDesc.samplerMaxNum = 1;
-
-        if (NRI.CreateDescriptorPool(device, descriptorPoolDesc, m_DescriptorPool) != nri::Result::SUCCESS)
-            return false;
-    }
-
-    // Descriptor set
-    {
-        if (NRI.AllocateDescriptorSets(*m_DescriptorPool, *m_PipelineLayout, 0, &m_DescriptorSet, 1, 0) != nri::Result::SUCCESS)
-            return false;
-
-        nri::DescriptorRangeUpdateDesc descriptorRangeUpdateDesc[] = {
-            {&m_FontShaderResource, 1},
-            {&m_Sampler, 1}};
-
-        NRI.UpdateDescriptorRanges(*m_DescriptorSet, 0, helper::GetCountOf(descriptorRangeUpdateDesc), descriptorRangeUpdateDesc);
-    }
 
     m_TimePrev = glfwGetTime();
 
     return true;
 }
 
-void SampleBase::DestroyUI(const nri::CoreInterface& NRI) {
+void SampleBase::DestroyUI() {
     if (!HasUserInterface())
         return;
 
+    m_iImgui.DestroyImgui(*m_ImguiRenderer);
     ImGui::DestroyContext();
-
-    NRI.DestroyDescriptorPool(*m_DescriptorPool);
-    NRI.DestroyPipeline(*m_Pipeline);
-    NRI.DestroyPipelineLayout(*m_PipelineLayout);
-    NRI.DestroyDescriptor(*m_Sampler);
-    NRI.DestroyDescriptor(*m_FontShaderResource);
-    NRI.DestroyTexture(*m_FontTexture);
-    NRI.FreeMemory(*m_FontTextureMemory);
-
     m_TimePrev = 0.0;
 }
 
@@ -691,116 +524,29 @@ void SampleBase::BeginUI() {
     ImGui::NewFrame();
 }
 
-void SampleBase::EndUI(const nri::StreamerInterface& streamerInterface, nri::Streamer& streamer) {
+void SampleBase::EndUI() {
     if (!HasUserInterface())
         return;
 
     ImGui::EndFrame();
     ImGui::Render();
-
-    const ImDrawData& drawData = *ImGui::GetDrawData();
-
-    // Prepare
-    uint32_t vertexDataSize = drawData.TotalVtxCount * sizeof(ImDrawVertOpt);
-    vertexDataSize = helper::Align(vertexDataSize, 16);
-    uint32_t indexDataSize = drawData.TotalIdxCount * sizeof(ImDrawIdx);
-    indexDataSize = helper::Align(indexDataSize, 16);
-    uint32_t totalDataSize = vertexDataSize + indexDataSize;
-    if (!totalDataSize)
-        return;
-
-    if (m_UiData.size() < totalDataSize)
-        m_UiData.resize(totalDataSize);
-
-    // Repack geometry
-    uint8_t* indexData = m_UiData.data();
-    ImDrawVertOpt* vertexData = (ImDrawVertOpt*)(indexData + indexDataSize);
-
-    for (int32_t n = 0; n < drawData.CmdListsCount; n++) {
-        const ImDrawList& drawList = *drawData.CmdLists[n];
-
-        for (int32_t i = 0; i < drawList.VtxBuffer.Size; i++) {
-            const ImDrawVert* v = drawList.VtxBuffer.Data + i;
-
-            ImDrawVertOpt opt;
-            opt.pos[0] = v->pos.x;
-            opt.pos[1] = v->pos.y;
-            opt.uv = Packing::float2_to_unorm_16_16(float2(v->uv.x, v->uv.y));
-            opt.col = v->col;
-
-            memcpy(vertexData++, &opt, sizeof(opt));
-        }
-
-        size_t size = drawList.IdxBuffer.Size * sizeof(ImDrawIdx);
-        memcpy(indexData, drawList.IdxBuffer.Data, size);
-        indexData += size;
-    }
-
-    // Add update request
-    nri::BufferUpdateRequestDesc bufferUpdateRequestDesc = {};
-    bufferUpdateRequestDesc.data = m_UiData.data();
-    bufferUpdateRequestDesc.dataSize = m_UiData.size();
-
-    m_IbOffset = streamerInterface.AddStreamerBufferUpdateRequest(streamer, bufferUpdateRequestDesc);
-    m_VbOffset = m_IbOffset + indexDataSize;
 }
 
-void SampleBase::RenderUI(const nri::CoreInterface& NRI, const nri::StreamerInterface& streamerInterface, nri::Streamer& streamer, nri::CommandBuffer& commandBuffer, float sdrScale, bool isSrgb) {
-    if (!HasUserInterface() || m_VbOffset == m_IbOffset)
+void SampleBase::RenderUI(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer, nri::Format attachmentFormat, float sdrScale, bool isSrgb) {
+    if (!HasUserInterface())
         return;
 
-    float consts[4];
-    consts[0] = 1.0f / ImGui::GetIO().DisplaySize.x;
-    consts[1] = 1.0f / ImGui::GetIO().DisplaySize.y;
-    consts[2] = sdrScale;
-    consts[3] = isSrgb ? 1.0f : 0.0f;
-
-    helper::Annotation annotation(NRI, commandBuffer, "UI");
-
-    NRI.CmdSetDescriptorPool(commandBuffer, *m_DescriptorPool);
-    NRI.CmdSetPipelineLayout(commandBuffer, *m_PipelineLayout);
-    NRI.CmdSetPipeline(commandBuffer, *m_Pipeline);
-    NRI.CmdSetRootConstants(commandBuffer, 0, consts, sizeof(consts));
-    NRI.CmdSetDescriptorSet(commandBuffer, 0, *m_DescriptorSet, nullptr);
-
-    nri::Buffer* geometryBuffer = streamerInterface.GetStreamerDynamicBuffer(streamer);
-    NRI.CmdSetIndexBuffer(commandBuffer, *geometryBuffer, m_IbOffset, sizeof(ImDrawIdx) == 2 ? nri::IndexType::UINT16 : nri::IndexType::UINT32);
-
-    nri::VertexBufferDesc vertexBufferDesc = {};
-    vertexBufferDesc.buffer = geometryBuffer;
-    vertexBufferDesc.offset = m_VbOffset;
-    vertexBufferDesc.stride = sizeof(ImDrawVertOpt);
-
-    NRI.CmdSetVertexBuffers(commandBuffer, 0, &vertexBufferDesc, 1);
-
-    const nri::Viewport viewport = {0.0f, 0.0f, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y, 0.0f, 1.0f};
-    NRI.CmdSetViewports(commandBuffer, &viewport, 1);
-
     const ImDrawData& drawData = *ImGui::GetDrawData();
-    int32_t vertexOffset = 0;
-    uint32_t indexOffset = 0;
-    for (int32_t n = 0; n < drawData.CmdListsCount; n++) {
-        const ImDrawList& drawList = *drawData.CmdLists[n];
-        for (int32_t i = 0; i < drawList.CmdBuffer.Size; i++) {
-            const ImDrawCmd& drawCmd = drawList.CmdBuffer[i];
-            if (drawCmd.UserCallback)
-                drawCmd.UserCallback(&drawList, &drawCmd);
-            else {
-                nri::Rect rect = {
-                    (int16_t)drawCmd.ClipRect.x,
-                    (int16_t)drawCmd.ClipRect.y,
-                    (nri::Dim_t)(drawCmd.ClipRect.z - drawCmd.ClipRect.x),
-                    (nri::Dim_t)(drawCmd.ClipRect.w - drawCmd.ClipRect.y)};
 
-                if (rect.width != 0 && rect.height != 0) {
-                    NRI.CmdSetScissors(commandBuffer, &rect, 1);
-                    NRI.CmdDrawIndexed(commandBuffer, {drawCmd.ElemCount, 1, indexOffset, vertexOffset, 0});
-                }
-            }
-            indexOffset += drawCmd.ElemCount;
-        }
-        vertexOffset += drawList.VtxBuffer.Size;
-    }
+    nri::DrawImguiDesc drawImguiDesc = {};
+    drawImguiDesc.drawLists = drawData.CmdLists.Data;
+    drawImguiDesc.drawListNum = drawData.CmdLists.Size;
+    drawImguiDesc.displaySize = {(nri::Dim_t)drawData.DisplaySize.x, (nri::Dim_t)drawData.DisplaySize.y};
+    drawImguiDesc.hdrScale = sdrScale;
+    drawImguiDesc.attachmentFormat = attachmentFormat;
+    drawImguiDesc.linearColor = !isSrgb;
+
+    m_iImgui.CmdDrawImgui(commandBuffer, *m_ImguiRenderer, streamer, drawImguiDesc);
 }
 
 bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {

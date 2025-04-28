@@ -3,8 +3,8 @@
 #pragma once
 
 #define NRI_FRAMEWORK_VERSION_MAJOR 0
-#define NRI_FRAMEWORK_VERSION_MINOR 15
-#define NRI_FRAMEWORK_VERSION_DATE "5 February 2025"
+#define NRI_FRAMEWORK_VERSION_MINOR 20
+#define NRI_FRAMEWORK_VERSION_DATE "28 April 2025"
 #define NRI_FRAMEWORK 1
 
 // Platform detection
@@ -43,6 +43,7 @@
 
 #include "Extensions/NRIDeviceCreation.h"
 #include "Extensions/NRIHelper.h"
+#include "Extensions/NRIImgui.h"
 #include "Extensions/NRILowLatency.h"
 #include "Extensions/NRIMeshShader.h"
 #include "Extensions/NRIRayTracing.h"
@@ -74,6 +75,7 @@ constexpr uint32_t SWAP_CHAIN_TEXTURE_NUM = 2;
 struct BackBuffer {
     nri::Descriptor* colorAttachment;
     nri::Texture* texture;
+    nri::Format attachmentFormat;
 };
 
 class SampleBase {
@@ -89,26 +91,25 @@ public:
 
     // Initialize
     virtual bool Initialize(nri::GraphicsAPI graphicsAPI) = 0;
-    bool InitUI(const nri::CoreInterface& NRI, const nri::HelperInterface& helperInterface, nri::Device& device, nri::Format renderTargetFormat);
+    bool InitUI(nri::Device& device);
 
     // Wait before input (wait for latency and/or queued frames)
-    virtual void LatencySleep(uint32_t frameIndex) {
-        (void)frameIndex;
+    virtual void LatencySleep([[maybe_unused]] uint32_t frameIndex) {
     }
 
     // Prepare
     virtual void PrepareFrame(uint32_t frameIndex) = 0;
     void BeginUI();
     //      Imgui::
-    void EndUI(const nri::StreamerInterface& streamerInterface, nri::Streamer& streamer);
+    void EndUI();
 
     // Render
     virtual void RenderFrame(uint32_t frameIndex) = 0;
-    void RenderUI(const nri::CoreInterface& NRI, const nri::StreamerInterface& streamerInterface, nri::Streamer& streamer, nri::CommandBuffer& commandBuffer, float sdrScale, bool isSrgb);
+    void RenderUI(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
 
     // Destroy
     virtual ~SampleBase();
-    void DestroyUI(const nri::CoreInterface& NRI);
+    void DestroyUI();
 
     // Misc
     virtual bool AppShouldClose() {
@@ -196,25 +197,14 @@ public:
 
 private:
     // UI
-    std::vector<uint8_t> m_UiData;
-    nri::DescriptorPool* m_DescriptorPool = nullptr;
-    nri::DescriptorSet* m_DescriptorSet = nullptr;
-    nri::Descriptor* m_FontShaderResource = nullptr;
-    nri::Descriptor* m_Sampler = nullptr;
-    nri::Pipeline* m_Pipeline = nullptr;
-    nri::PipelineLayout* m_PipelineLayout = nullptr;
-    nri::Texture* m_FontTexture = nullptr;
-    nri::Memory* m_FontTextureMemory = nullptr;
+    nri::ImguiInterface m_iImgui = {};
+    nri::Imgui* m_ImguiRenderer = nullptr;
     GLFWcursor* m_MouseCursors[ImGuiMouseCursor_COUNT] = {};
     double m_TimePrev = 0.0;
-    uint64_t m_IbOffset = 0;
-    uint64_t m_VbOffset = 0;
-
-    nri::Window m_NRIWindow = {};
 
     // Rendering
+    nri::Window m_NRIWindow = {};
     uint32_t m_FrameNum = uint32_t(-1);
-    uint32_t m_StreamBufferSize = 0;
 };
 
 #define _STRINGIFY(s) #s
