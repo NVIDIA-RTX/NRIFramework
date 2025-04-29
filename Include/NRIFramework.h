@@ -29,8 +29,9 @@
 #    error "Unknown platform"
 #endif
 
-#include <stdlib.h>
 #include <array>
+#include <cinttypes>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
