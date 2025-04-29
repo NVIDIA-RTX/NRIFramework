@@ -309,11 +309,3 @@ struct Scene {
     }
 };
 } // namespace utils
-
-#define NRI_ABORT_ON_FAILURE(result) \
-    if ((result) != nri::Result::SUCCESS) \
-        exit(1);
-
-#define NRI_ABORT_ON_FALSE(result) \
-    if (!(result)) \
-        exit(1);

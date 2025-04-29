@@ -29,6 +29,7 @@
 #    error "Unknown platform"
 #endif
 
+#include <stdlib.h>
 #include <array>
 #include <string>
 #include <vector>
@@ -98,7 +99,10 @@ public:
     }
 
     // Prepare
-    virtual void PrepareFrame(uint32_t frameIndex) = 0;
+    virtual void PrepareFrame([[maybe_unused]] uint32_t frameIndex) {
+    }
+
+    // UI
     void BeginUI();
     //      Imgui::
     void EndUI();
@@ -166,6 +170,7 @@ protected:
     uint8_t m_VsyncInterval = 0;
     uint32_t m_DpiMode = 0;
     uint32_t m_RngState = 0;
+    uint32_t m_AdapterIndex = 0;
     float m_MouseSensitivity = 1.0f;
     bool m_DebugAPI = false;
     bool m_DebugNRI = false;
@@ -210,13 +215,28 @@ private:
 #define _STRINGIFY(s) #s
 #define STRINGIFY(s) _STRINGIFY(s)
 
+#define NRI_ABORT_ON_FAILURE(result) \
+    if ((result) != nri::Result::SUCCESS) { \
+        exit(1); \
+    }
+
+#define NRI_ABORT_ON_FALSE(result) \
+    if (!(result)) { \
+        exit(1); \
+    }
+
 #define SAMPLE_MAIN(className, memoryAllocationIndexForBreak) \
+    SampleBase* g_sample = nullptr; \
+    void Destroy() { \
+        if (g_sample) \
+            delete g_sample; \
+    } \
     int main(int argc, char** argv) { \
         SampleBase::EnableMemoryLeakDetection(memoryAllocationIndexForBreak); \
-        SampleBase* sample = new className; \
-        bool result = sample->Create(argc, argv, STRINGIFY(PROJECT_NAME)); \
+        g_sample = new className; \
+        atexit(Destroy); \
+        bool result = g_sample->Create(argc, argv, STRINGIFY(PROJECT_NAME)); \
         if (result) \
-            sample->RenderLoop(); \
-        delete sample; \
+            g_sample->RenderLoop(); \
         return result ? 0 : 1; \
     }

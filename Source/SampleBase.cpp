@@ -737,6 +737,7 @@ void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
     cmdLine.add<uint32_t>("frameNum", 'f', "max frames to render", false, m_FrameNum);
     cmdLine.add<uint32_t>("vsyncInterval", 'v', "vsync interval", false, m_VsyncInterval);
     cmdLine.add<uint32_t>("dpiMode", 0, "DPI mode", false, m_DpiMode);
+    cmdLine.add<uint32_t>("adapter", 0, "Adapter index (0 - best)", false, m_AdapterIndex);
     cmdLine.add("debugAPI", 0, "enable graphics API validation layer");
     cmdLine.add("debugNRI", 0, "enable NRI validation layer");
 }
@@ -747,9 +748,10 @@ void SampleBase::ReadCmdLineDefault(cmdline::parser& cmdLine) {
     m_OutputResolution.y = cmdLine.get<uint32_t>("height");
     m_FrameNum = cmdLine.get<uint32_t>("frameNum");
     m_VsyncInterval = (uint8_t)cmdLine.get<uint32_t>("vsyncInterval");
+    m_DpiMode = cmdLine.get<uint32_t>("dpiMode");
+    m_AdapterIndex = cmdLine.get<uint32_t>("adapter");
     m_DebugAPI = cmdLine.exist("debugAPI");
     m_DebugNRI = cmdLine.exist("debugNRI");
-    m_DpiMode = cmdLine.get<uint32_t>("dpiMode");
 }
 
 void SampleBase::EnableMemoryLeakDetection([[maybe_unused]] uint32_t breakOnAllocationIndex) {
