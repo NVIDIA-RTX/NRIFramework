@@ -70,7 +70,6 @@
 // Settings
 constexpr nri::VKBindingOffsets VK_BINDING_OFFSETS = {0, 128, 32, 64}; // see CMake
 constexpr bool D3D11_COMMANDBUFFER_EMULATION = false;
-constexpr uint32_t DEFAULT_MEMORY_ALIGNMENT = 16;
 
 struct BackBuffer {
     nri::Descriptor* colorAttachment;
@@ -91,7 +90,7 @@ public:
 
     // Initialize
     virtual bool Initialize(nri::GraphicsAPI graphicsAPI) = 0;
-    bool InitUI(nri::Device& device);
+    bool InitImgui(nri::Device& device);
 
     // Wait before input (wait for latency and/or queued frames)
     virtual void LatencySleep([[maybe_unused]] uint32_t frameIndex) {
@@ -101,18 +100,15 @@ public:
     virtual void PrepareFrame([[maybe_unused]] uint32_t frameIndex) {
     }
 
-    // UI
-    void BeginUI();
-    //      Imgui::
-    void EndUI();
+    void GetCameraDescFromInputDevices(CameraDesc& cameraDesc);
 
     // Render
     virtual void RenderFrame(uint32_t frameIndex) = 0;
-    void RenderUI(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
+    void RenderImgui(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
 
     // Destroy
     virtual ~SampleBase();
-    void DestroyUI();
+    void DestroyImgui();
 
     // Misc
     virtual bool AppShouldClose() {
@@ -162,8 +158,6 @@ public:
         return GetQueuedFrameNum() + 1;
     }
 
-    void GetCameraDescFromInputDevices(CameraDesc& cameraDesc);
-
     static void EnableMemoryLeakDetection(uint32_t breakOnAllocationIndex);
 
 protected:
@@ -189,7 +183,7 @@ private:
 
 public:
     inline bool HasUserInterface() const {
-        return m_TimePrev != 0.0;
+        return m_ImguiRenderer != nullptr;
     }
 
     void InitCmdLineDefault(cmdline::parser& cmdLine);
@@ -202,7 +196,6 @@ public:
     std::array<bool, (size_t)Key::NUM> m_KeyState = {};
     std::array<bool, (size_t)Key::NUM> m_KeyToggled = {};
     std::array<bool, (size_t)Button::NUM> m_ButtonState = {};
-    std::array<bool, (size_t)Button::NUM> m_ButtonJustPressed = {};
     float2 m_MouseDelta = {};
     float2 m_MousePosPrev = {};
     float m_MouseWheel = 0.0f;
@@ -212,10 +205,10 @@ private:
     nri::ImguiInterface m_iImgui = {};
     nri::Imgui* m_ImguiRenderer = nullptr;
     GLFWcursor* m_MouseCursors[ImGuiMouseCursor_COUNT] = {};
-    double m_TimePrev = 0.0;
 
     // Rendering
     nri::Window m_NRIWindow = {};
+    double m_TimeLimit = 1e38;
     uint32_t m_FrameNum = uint32_t(-1);
 };
 

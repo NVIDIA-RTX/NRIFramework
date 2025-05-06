@@ -22,30 +22,6 @@ void CreateDebugAllocator(nri::AllocationCallbacks& allocationCallbacks);
 void DestroyDebugAllocator(nri::AllocationCallbacks& allocationCallbacks);
 
 //==================================================================================================================================================
-// MEMORY
-//==================================================================================================================================================
-
-#if (NRIF_PLATFORM == NRIF_WINDOWS)
-
-void* __CRTDECL operator new(size_t size) {
-    return _aligned_malloc(size, DEFAULT_MEMORY_ALIGNMENT);
-}
-
-void* __CRTDECL operator new[](size_t size) {
-    return _aligned_malloc(size, DEFAULT_MEMORY_ALIGNMENT);
-}
-
-void __CRTDECL operator delete(void* p) noexcept {
-    _aligned_free(p);
-}
-
-void __CRTDECL operator delete[](void* p) noexcept {
-    _aligned_free(p);
-}
-
-#endif
-
-//==================================================================================================================================================
 // GLFW CALLBACKS
 //==================================================================================================================================================
 
@@ -310,14 +286,24 @@ static void GLFW_ButtonCallback(GLFWwindow* window, int32_t button, int32_t acti
     SampleBase* p = (SampleBase*)glfwGetWindowUserPointer(window);
 
     p->m_ButtonState[button] = action != GLFW_RELEASE;
-    p->m_ButtonJustPressed[button] = action != GLFW_RELEASE;
+
+    if (p->HasUserInterface()) {
+        ImGuiIO& io = ImGui::GetIO();
+        io.AddMouseButtonEvent(button, action == GLFW_PRESS);
+    }
 }
 
 static void GLFW_CursorPosCallback(GLFWwindow* window, double x, double y) {
     SampleBase* p = (SampleBase*)glfwGetWindowUserPointer(window);
 
-    float2 curPos = float2(float(x), float(y));
-    p->m_MouseDelta = curPos - p->m_MousePosPrev;
+    float2 cursorPos = float2(float(x), float(y));
+    p->m_MouseDelta = cursorPos - p->m_MousePosPrev;
+    p->m_MousePosPrev = cursorPos;
+
+    if (p->HasUserInterface()) {
+        ImGuiIO& io = ImGui::GetIO();
+        io.AddMousePosEvent(cursorPos.x, cursorPos.y);
+    }
 }
 
 static void GLFW_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -327,8 +313,7 @@ static void GLFW_ScrollCallback(GLFWwindow* window, double xoffset, double yoffs
 
     if (p->HasUserInterface()) {
         ImGuiIO& io = ImGui::GetIO();
-        io.MouseWheelH += (float)xoffset;
-        io.MouseWheel += (float)yoffset;
+        io.AddMouseWheelEvent((float)xoffset, (float)yoffset);
     }
 }
 
@@ -402,7 +387,7 @@ struct ImDrawVertOpt {
     uint32_t col;
 };
 
-bool SampleBase::InitUI(nri::Device& device) {
+bool SampleBase::InitImgui(nri::Device& device) {
     // Setup
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -423,17 +408,16 @@ bool SampleBase::InitUI(nri::Device& device) {
 
     ImGuiIO& io = ImGui::GetIO();
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors; // We can honor GetMouseCursor() values (optional)
-    io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;  // We can honor io.WantSetMousePos requests (optional, rarely used)
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
     io.IniFilename = nullptr;
 
     m_MouseCursors[ImGuiMouseCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
     m_MouseCursors[ImGuiMouseCursor_TextInput] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
-    m_MouseCursors[ImGuiMouseCursor_ResizeAll] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR); // FIXME: GLFW doesn't have this.
+    m_MouseCursors[ImGuiMouseCursor_ResizeAll] = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);
     m_MouseCursors[ImGuiMouseCursor_ResizeNS] = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
     m_MouseCursors[ImGuiMouseCursor_ResizeEW] = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
-    m_MouseCursors[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR); // FIXME: GLFW doesn't have this.
-    m_MouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR); // FIXME: GLFW doesn't have this.
+    m_MouseCursors[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+    m_MouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
     m_MouseCursors[ImGuiMouseCursor_Hand] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
 
     // Font
@@ -458,81 +442,20 @@ bool SampleBase::InitUI(nri::Device& device) {
     if (result != nri::Result::SUCCESS)
         return false;
 
-    m_TimePrev = glfwGetTime();
-
     return true;
 }
 
-void SampleBase::DestroyUI() {
+void SampleBase::DestroyImgui() {
     if (!HasUserInterface())
         return;
 
     m_iImgui.DestroyImgui(*m_ImguiRenderer);
     ImGui::DestroyContext();
-    m_TimePrev = 0.0;
+
+    m_ImguiRenderer = nullptr;
 }
 
-void SampleBase::BeginUI() {
-    if (!HasUserInterface())
-        return;
-
-    ImGuiIO& io = ImGui::GetIO();
-
-    // Setup time step
-    double timeCur = glfwGetTime();
-    io.DeltaTime = (float)(timeCur - m_TimePrev);
-    io.DisplaySize = ImVec2((float)m_WindowResolution.x, (float)m_WindowResolution.y);
-    m_TimePrev = timeCur;
-
-    // Update key modifiers
-    io.AddKeyEvent(ImGuiMod_Ctrl, IsKeyPressed(Key::LControl) || IsKeyPressed(Key::RControl));
-    io.AddKeyEvent(ImGuiMod_Shift, IsKeyPressed(Key::LShift) || IsKeyPressed(Key::RShift));
-    io.AddKeyEvent(ImGuiMod_Alt, IsKeyPressed(Key::LAlt) || IsKeyPressed(Key::RAlt));
-
-    // Update buttons
-    for (int32_t i = 0; i < IM_ARRAYSIZE(io.MouseDown); i++) {
-        // If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
-        io.MouseDown[i] = m_ButtonJustPressed[i] || glfwGetMouseButton(m_Window, i) != 0;
-        m_ButtonJustPressed[i] = false;
-    }
-
-    // Update mouse position
-    if (glfwGetWindowAttrib(m_Window, GLFW_FOCUSED) != 0) {
-        if (io.WantSetMousePos)
-            glfwSetCursorPos(m_Window, (double)io.MousePos.x, (double)io.MousePos.y);
-        else {
-            double mouse_x, mouse_y;
-            glfwGetCursorPos(m_Window, &mouse_x, &mouse_y);
-            io.MousePos = ImVec2((float)mouse_x, (float)mouse_y);
-        }
-    }
-
-    // Update mouse cursor
-    if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) == 0 && glfwGetInputMode(m_Window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
-        ImGuiMouseCursor cursor = ImGui::GetMouseCursor();
-        if (cursor == ImGuiMouseCursor_None || io.MouseDrawCursor) {
-            // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
-            CursorMode(GLFW_CURSOR_HIDDEN);
-        } else {
-            // Show OS mouse cursor
-            glfwSetCursor(m_Window, m_MouseCursors[cursor] ? m_MouseCursors[cursor] : m_MouseCursors[ImGuiMouseCursor_Arrow]);
-            CursorMode(GLFW_CURSOR_NORMAL);
-        }
-    }
-
-    // Start the frame. This call will update the io.WantCaptureMouse, io.WantCaptureKeyboard flag that you can use to dispatch inputs (or not) to your application.
-    ImGui::NewFrame();
-}
-
-void SampleBase::EndUI() {
-    if (!HasUserInterface())
-        return;
-
-    ImGui::EndFrame();
-    ImGui::Render();
-}
-
-void SampleBase::RenderUI(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer, nri::Format attachmentFormat, float sdrScale, bool isSrgb) {
+void SampleBase::RenderImgui(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer, nri::Format attachmentFormat, float sdrScale, bool isSrgb) {
     if (!HasUserInterface())
         return;
 
@@ -666,31 +589,66 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
 }
 
 void SampleBase::RenderLoop() {
+    double activeTime = 0.0;
+    double imguiTimeStampPrev = 0;
+
     for (uint32_t i = 0; i < m_FrameNum; i++) {
+        double timeCurr = glfwGetTime();
+
         LatencySleep(i);
 
         // Events
         glfwPollEvents();
 
+        if (HasUserInterface()) {
+            ImGuiIO& io = ImGui::GetIO();
+            io.DisplaySize = ImVec2((float)m_WindowResolution.x, (float)m_WindowResolution.y);
+            io.DeltaTime = (float)(glfwGetTime() - imguiTimeStampPrev);
+            imguiTimeStampPrev = glfwGetTime();
+
+            // Update key modifiers
+            io.AddKeyEvent(ImGuiMod_Ctrl, IsKeyPressed(Key::LControl) || IsKeyPressed(Key::RControl));
+            io.AddKeyEvent(ImGuiMod_Shift, IsKeyPressed(Key::LShift) || IsKeyPressed(Key::RShift));
+            io.AddKeyEvent(ImGuiMod_Alt, IsKeyPressed(Key::LAlt) || IsKeyPressed(Key::RAlt));
+
+            // Update mouse cursor
+            if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) == 0 && glfwGetInputMode(m_Window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
+                ImGuiMouseCursor cursor = ImGui::GetMouseCursor();
+                if (cursor == ImGuiMouseCursor_None || io.MouseDrawCursor) {
+                    // Hide OS mouse cursor if Imgui is drawing it or wants no cursor
+                    CursorMode(GLFW_CURSOR_HIDDEN);
+                } else {
+                    // Show OS mouse cursor
+                    glfwSetCursor(m_Window, m_MouseCursors[cursor] ? m_MouseCursors[cursor] : m_MouseCursors[ImGuiMouseCursor_Arrow]);
+                    CursorMode(GLFW_CURSOR_NORMAL);
+                }
+            }
+        }
+
+        // Halting
         m_IsActive = glfwGetWindowAttrib(m_Window, GLFW_FOCUSED) != 0 && glfwGetWindowAttrib(m_Window, GLFW_ICONIFIED) == 0;
         if (!m_IsActive) {
             i--;
             continue;
         }
 
-        if (glfwWindowShouldClose(m_Window) || this->AppShouldClose())
+        // Closing?
+        if (glfwWindowShouldClose(m_Window) || AppShouldClose())
             break;
 
+        // Frame
         PrepareFrame(i);
         RenderFrame(i);
 
-        double cursorPosx, cursorPosy;
-        glfwGetCursorPos(m_Window, &cursorPosx, &cursorPosy);
-        m_MousePosPrev = float2(float(cursorPosx), float(cursorPosy));
+        // Finalize
         m_MouseWheel = 0.0f;
         m_MouseDelta = float2(0.0f);
 
         m_Timer.UpdateFrameTime();
+
+        activeTime += glfwGetTime() - timeCurr;
+        if (i > 2 && activeTime > m_TimeLimit)
+            break;
     }
 
     printf(
@@ -734,7 +692,8 @@ void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
     cmdLine.add<std::string>("scene", 's', "scene", false, m_SceneFile);
     cmdLine.add<uint32_t>("width", 'w', "output resolution width", false, m_OutputResolution.x);
     cmdLine.add<uint32_t>("height", 'h', "output resolution height", false, m_OutputResolution.y);
-    cmdLine.add<uint32_t>("frameNum", 'f', "max frames to render", false, m_FrameNum);
+    cmdLine.add<uint32_t>("frameNum", 'f', "close after N frames", false, m_FrameNum);
+    cmdLine.add<double>("timeLimit", 't', "close after N seconds", false, m_TimeLimit);
     cmdLine.add<uint32_t>("vsyncInterval", 'v', "vsync interval", false, m_VsyncInterval);
     cmdLine.add<uint32_t>("dpiMode", 0, "DPI mode", false, m_DpiMode);
     cmdLine.add<uint32_t>("adapter", 0, "Adapter index (0 - best)", false, m_AdapterIndex);
@@ -747,6 +706,7 @@ void SampleBase::ReadCmdLineDefault(cmdline::parser& cmdLine) {
     m_OutputResolution.x = cmdLine.get<uint32_t>("width");
     m_OutputResolution.y = cmdLine.get<uint32_t>("height");
     m_FrameNum = cmdLine.get<uint32_t>("frameNum");
+    m_TimeLimit = cmdLine.get<double>("timeLimit");
     m_VsyncInterval = (uint8_t)cmdLine.get<uint32_t>("vsyncInterval");
     m_DpiMode = cmdLine.get<uint32_t>("dpiMode");
     m_AdapterIndex = cmdLine.get<uint32_t>("adapter");
