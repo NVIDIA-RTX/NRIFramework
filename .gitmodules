@@ -6,7 +6,7 @@
 [submodule "External/NRI"]
 	path = External/NRI
 	url = https://github.com/NVIDIAGameWorks/NRI.git
-	branch = main
+	branch = omm_sample
 	update = merge
 [submodule "External/ShaderMake"]
 	path = External/ShaderMake
