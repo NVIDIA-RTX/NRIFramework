@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.30)
 
 include(FetchContent)
 
@@ -94,6 +94,7 @@ list(APPEND DEPS cgltf)
 if(DEPS)
     message("NRI framework: downloading dependencies:")
     message(STATUS "${DEPS} ...")
+
     FetchContent_MakeAvailable(${DEPS})
 endif()
 
