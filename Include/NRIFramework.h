@@ -155,7 +155,7 @@ public:
     }
 
     inline uint8_t GetSwapChainFrameNum() const {
-        return GetQueuedFrameNum() + 1;
+        return GetQueuedFrameNum(); // TODO: +1 is desired (?), but requires decoupling swap chain semaphores from "QueuedFrame" 
     }
 
     static void EnableMemoryLeakDetection(uint32_t breakOnAllocationIndex);
