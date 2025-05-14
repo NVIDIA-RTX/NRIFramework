@@ -71,9 +71,11 @@
 constexpr nri::VKBindingOffsets VK_BINDING_OFFSETS = {0, 128, 32, 64}; // see CMake
 constexpr bool D3D11_COMMANDBUFFER_EMULATION = false;
 
-struct BackBuffer {
-    nri::Descriptor* colorAttachment;
+struct SwapChainTexture {
+    nri::Fence* acquireSemaphore;
+    nri::Fence* releaseSemaphore;
     nri::Texture* texture;
+    nri::Descriptor* colorAttachment;
     nri::Format attachmentFormat;
 };
 
@@ -154,8 +156,8 @@ public:
         return m_VsyncInterval ? 2 : 3;
     }
 
-    inline uint8_t GetSwapChainFrameNum() const {
-        return GetQueuedFrameNum(); // TODO: +1 is desired (?), but requires decoupling swap chain semaphores from "QueuedFrame" 
+    inline uint8_t GetOptimalSwapChainTextureNum() const {
+        return GetQueuedFrameNum() + 1;
     }
 
     static void EnableMemoryLeakDetection(uint32_t breakOnAllocationIndex);
