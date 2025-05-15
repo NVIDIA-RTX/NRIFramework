@@ -11,3 +11,4 @@ compile_commands.json
 # generated
 _Bin/
 _Build/
+_Shaders/
