@@ -4,14 +4,14 @@
 
 #define NRI_FRAMEWORK_VERSION_MAJOR 0
 #define NRI_FRAMEWORK_VERSION_MINOR 20
-#define NRI_FRAMEWORK_VERSION_DATE "28 April 2025"
-#define NRI_FRAMEWORK 1
+#define NRI_FRAMEWORK_VERSION_DATE  "28 April 2025"
+#define NRI_FRAMEWORK               1
 
 // Platform detection
 #define NRIF_WINDOWS 0
-#define NRIF_X11 1
+#define NRIF_X11     1
 #define NRIF_WAYLAND 2
-#define NRIF_COCOA 3
+#define NRIF_COCOA   3
 
 #if defined(_WIN32)
 #    define NRIF_PLATFORM NRIF_WINDOWS
@@ -215,7 +215,7 @@ private:
 };
 
 #define _STRINGIFY(s) #s
-#define STRINGIFY(s) _STRINGIFY(s)
+#define STRINGIFY(s)  _STRINGIFY(s)
 
 #define NRI_ABORT_ON_FAILURE(result) \
     if ((result) != nri::Result::SUCCESS) { \

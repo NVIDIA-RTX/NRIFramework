@@ -323,7 +323,7 @@ public:
 
     ~parser() {
         for (std::map<std::string, option_base*>::iterator p = options.begin();
-             p != options.end(); p++)
+            p != options.end(); p++)
             delete p->second;
     }
 
@@ -451,7 +451,7 @@ public:
 
         std::map<char, std::string> lookup;
         for (std::map<std::string, option_base*>::iterator p = options.begin();
-             p != options.end(); p++) {
+            p != options.end(); p++) {
             if (p->first.length() == 0)
                 continue;
             char initial = p->second->short_name();
@@ -528,7 +528,7 @@ public:
         }
 
         for (std::map<std::string, option_base*>::iterator p = options.begin();
-             p != options.end(); p++)
+            p != options.end(); p++)
             if (!p->second->valid())
                 errors.push_back("need option: --" + std::string(p->first));
 

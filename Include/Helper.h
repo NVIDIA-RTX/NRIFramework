@@ -24,7 +24,7 @@ constexpr uint32_t GetCountOf(const std::array<T, N>& v) {
 }
 
 template <typename T, typename U>
-constexpr uint32_t GetOffsetOf(U T::*member) {
+constexpr uint32_t GetOffsetOf(U T::* member) {
     return (uint32_t)((char*)&((T*)nullptr->*member) - (char*)nullptr);
 }
 
