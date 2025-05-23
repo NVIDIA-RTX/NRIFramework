@@ -177,7 +177,7 @@ protected:
     float m_MouseSensitivity = 1.0f;
     bool m_DebugAPI = false;
     bool m_DebugNRI = false;
-    bool m_IsActive = true;
+    bool m_AlwaysActive = false;
 
     // Private
 private:

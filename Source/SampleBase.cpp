@@ -629,8 +629,9 @@ void SampleBase::RenderLoop() {
         }
 
         // Halting
-        m_IsActive = glfwGetWindowAttrib(m_Window, GLFW_FOCUSED) != 0 && glfwGetWindowAttrib(m_Window, GLFW_ICONIFIED) == 0;
-        if (!m_IsActive) {
+        bool isActive = glfwGetWindowAttrib(m_Window, GLFW_FOCUSED) != 0 && glfwGetWindowAttrib(m_Window, GLFW_ICONIFIED) == 0;
+        isActive = m_AlwaysActive ? true : isActive;
+        if (!isActive) {
             i--;
             continue;
         }
@@ -702,6 +703,7 @@ void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
     cmdLine.add<uint32_t>("adapter", 0, "Adapter index (0 - best)", false, m_AdapterIndex);
     cmdLine.add("debugAPI", 0, "enable graphics API validation layer");
     cmdLine.add("debugNRI", 0, "enable NRI validation layer");
+    cmdLine.add("alwaysActive", 0, "continue to render if not in focus");
 }
 
 void SampleBase::ReadCmdLineDefault(cmdline::parser& cmdLine) {
@@ -715,6 +717,7 @@ void SampleBase::ReadCmdLineDefault(cmdline::parser& cmdLine) {
     m_AdapterIndex = cmdLine.get<uint32_t>("adapter");
     m_DebugAPI = cmdLine.exist("debugAPI");
     m_DebugNRI = cmdLine.exist("debugNRI");
+    m_AlwaysActive = cmdLine.exist("alwaysActive");
 }
 
 void SampleBase::EnableMemoryLeakDetection([[maybe_unused]] uint32_t breakOnAllocationIndex) {
