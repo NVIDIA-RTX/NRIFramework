@@ -16,15 +16,19 @@
 #if defined(_WIN32)
 #    define NRIF_PLATFORM NRIF_WINDOWS
 #    define GLFW_EXPOSE_NATIVE_WIN32
+#    define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(__APPLE__)
 #    define NRIF_PLATFORM NRIF_COCOA
 #    define GLFW_EXPOSE_NATIVE_COCOA
+#    define VK_USE_PLATFORM_METAL_EXT
 #elif (defined(__linux__) && NRIF_USE_WAYLAND)
 #    define NRIF_PLATFORM NRIF_WAYLAND
 #    define GLFW_EXPOSE_NATIVE_WAYLAND
+#    define VK_USE_PLATFORM_WAYLAND_KHR
 #elif (defined(__linux__))
 #    define NRIF_PLATFORM NRIF_X11
 #    define GLFW_EXPOSE_NATIVE_X11
+#    define VK_USE_PLATFORM_XLIB_KHR
 #else
 #    error "Unknown platform"
 #endif
