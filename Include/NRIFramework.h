@@ -157,7 +157,7 @@ public:
     }
 
     inline uint8_t GetQueuedFrameNum() const {
-        return m_VsyncInterval ? 2 : 3;
+        return m_Vsync ? 2 : 3;
     }
 
     inline uint8_t GetOptimalSwapChainTextureNum() const {
@@ -174,11 +174,11 @@ protected:
     Timer m_Timer;
     uint2 m_OutputResolution = {1920, 1080};
     uint2 m_WindowResolution = {};
-    uint8_t m_VsyncInterval = 0;
     uint32_t m_DpiMode = 0;
     uint32_t m_RngState = 0;
     uint32_t m_AdapterIndex = 0;
     float m_MouseSensitivity = 1.0f;
+    bool m_Vsync = false;
     bool m_DebugAPI = false;
     bool m_DebugNRI = false;
     bool m_AlwaysActive = false;

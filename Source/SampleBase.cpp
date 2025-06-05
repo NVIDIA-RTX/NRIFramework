@@ -698,9 +698,9 @@ void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
     cmdLine.add<uint32_t>("height", 'h', "output resolution height", false, m_OutputResolution.y);
     cmdLine.add<uint32_t>("frameNum", 'f', "close after N frames", false, m_FrameNum);
     cmdLine.add<double>("timeLimit", 't', "close after N seconds", false, m_TimeLimit);
-    cmdLine.add<uint32_t>("vsyncInterval", 'v', "vsync interval", false, m_VsyncInterval);
     cmdLine.add<uint32_t>("dpiMode", 0, "DPI mode", false, m_DpiMode);
     cmdLine.add<uint32_t>("adapter", 0, "Adapter index (0 - best)", false, m_AdapterIndex);
+    cmdLine.add("vsync", 'v', "vertical sync");
     cmdLine.add("debugAPI", 0, "enable graphics API validation layer");
     cmdLine.add("debugNRI", 0, "enable NRI validation layer");
     cmdLine.add("alwaysActive", 0, "continue to render if not in focus");
@@ -712,9 +712,9 @@ void SampleBase::ReadCmdLineDefault(cmdline::parser& cmdLine) {
     m_OutputResolution.y = cmdLine.get<uint32_t>("height");
     m_FrameNum = cmdLine.get<uint32_t>("frameNum");
     m_TimeLimit = cmdLine.get<double>("timeLimit");
-    m_VsyncInterval = (uint8_t)cmdLine.get<uint32_t>("vsyncInterval");
     m_DpiMode = cmdLine.get<uint32_t>("dpiMode");
     m_AdapterIndex = cmdLine.get<uint32_t>("adapter");
+    m_Vsync = (uint8_t)cmdLine.exist("vsync");
     m_DebugAPI = cmdLine.exist("debugAPI");
     m_DebugNRI = cmdLine.exist("debugNRI");
     m_AlwaysActive = cmdLine.exist("alwaysActive");
