@@ -541,8 +541,23 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     glfwWindowHint(GLFW_DECORATED, decorated ? 1 : 0);
     glfwWindowHint(GLFW_RESIZABLE, 0);
 
+    nri::GraphicsAPI graphicsAPI = nri::GraphicsAPI::VK;  // Default fallback
+    std::string apiName = "VULKAN";  // Default name
+
+    std::string selectedApi = cmdLine.get<std::string>("api");
+    if (selectedApi == "D3D11") {
+        graphicsAPI = nri::GraphicsAPI::D3D11;
+        apiName = "D3D11";
+    } else if (selectedApi == "D3D12") {
+        graphicsAPI = nri::GraphicsAPI::D3D12;
+        apiName = "D3D12";
+    } else if (selectedApi == "VULKAN") {
+        graphicsAPI = nri::GraphicsAPI::VK;
+        apiName = "VULKAN";
+    }
+
     char windowName[256];
-    snprintf(windowName, sizeof(windowName), "%s [%s]", windowTitle, cmdLine.get<std::string>("api").c_str());
+    snprintf(windowName, sizeof(windowName), "%s [%s]", windowTitle, apiName.c_str());
 
     m_Window = glfwCreateWindow(m_WindowResolution.x, m_WindowResolution.y, windowName, NULL, NULL);
     if (!m_Window) {
@@ -570,12 +585,6 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
 
     // Main initialization
     printf("Loading...\n");
-
-    nri::GraphicsAPI graphicsAPI = nri::GraphicsAPI::VK;
-    if (cmdLine.get<std::string>("api") == "D3D11")
-        graphicsAPI = nri::GraphicsAPI::D3D11;
-    else if (cmdLine.get<std::string>("api") == "D3D12")
-        graphicsAPI = nri::GraphicsAPI::D3D12;
 
     bool result = Initialize(graphicsAPI);
 
