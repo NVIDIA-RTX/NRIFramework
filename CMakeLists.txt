@@ -30,7 +30,11 @@ string(REGEX MATCH "NRI_FRAMEWORK_VERSION_MINOR ([0-9]*)" _ ${ver_h})
 set(VERSION_MINOR ${CMAKE_MATCH_1})
 
 message("NRI framework v${VERSION_MAJOR}.${VERSION_MINOR}")
-project(NRIFramework LANGUAGES C CXX OBJC)
+project(NRIFramework LANGUAGES C CXX)
+
+if (APPLE)
+    enable_language(OBJC)
+endif ()
 
 # Globals?
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
