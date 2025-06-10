@@ -32,6 +32,10 @@ set(VERSION_MINOR ${CMAKE_MATCH_1})
 message("NRI framework v${VERSION_MAJOR}.${VERSION_MINOR}")
 project(NRIFramework LANGUAGES C CXX)
 
+if (APPLE)
+    enable_language(OBJC)
+endif ()
+
 # Globals?
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
