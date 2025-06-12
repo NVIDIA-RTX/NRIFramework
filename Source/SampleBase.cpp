@@ -407,8 +407,9 @@ bool SampleBase::InitImgui(nri::Device& device) {
     style.ScaleAllSizes(contentScale);
 
     ImGuiIO& io = ImGui::GetIO();
-    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors; // We can honor GetMouseCursor() values (optional)
+    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
     io.IniFilename = nullptr;
 
     m_MouseCursors[ImGuiMouseCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
@@ -428,18 +429,12 @@ bool SampleBase::InitImgui(nri::Device& device) {
     fontConfig.SizePixels = floor(13.0f * contentScale);
     io.Fonts->AddFontDefault(&fontConfig);
 
-    int32_t fontWidth = 0, fontHeight = 0;
-    uint8_t* fontPixels = nullptr;
-    io.Fonts->GetTexDataAsRGBA32(&fontPixels, &fontWidth, &fontHeight);
-
     // Renderer
     nri::Result result = nri::nriGetInterface(device, NRI_INTERFACE(nri::ImguiInterface), &m_iImgui);
     if (result != nri::Result::SUCCESS)
         return false;
 
     nri::ImguiDesc imguiDesc = {};
-    imguiDesc.fontAtlasData = fontPixels;
-    imguiDesc.fontAtlasDims = {(nri::Dim_t)fontWidth, (nri::Dim_t)fontHeight};
 
     result = m_iImgui.CreateImgui(device, imguiDesc, m_ImguiRenderer);
     if (result != nri::Result::SUCCESS)
@@ -467,6 +462,8 @@ void SampleBase::RenderImgui(nri::CommandBuffer& commandBuffer, nri::Streamer& s
     nri::DrawImguiDesc drawImguiDesc = {};
     drawImguiDesc.drawLists = drawData.CmdLists.Data;
     drawImguiDesc.drawListNum = drawData.CmdLists.Size;
+    drawImguiDesc.textures = drawData.Textures->Data;
+    drawImguiDesc.textureNum = drawData.Textures->Size;
     drawImguiDesc.displaySize = {(nri::Dim_t)drawData.DisplaySize.x, (nri::Dim_t)drawData.DisplaySize.y};
     drawImguiDesc.hdrScale = sdrScale;
     drawImguiDesc.attachmentFormat = attachmentFormat;

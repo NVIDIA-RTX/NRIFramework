@@ -3,8 +3,8 @@
 #pragma once
 
 #define NRI_FRAMEWORK_VERSION_MAJOR 0
-#define NRI_FRAMEWORK_VERSION_MINOR 20
-#define NRI_FRAMEWORK_VERSION_DATE  "28 April 2025"
+#define NRI_FRAMEWORK_VERSION_MINOR 21
+#define NRI_FRAMEWORK_VERSION_DATE  "12 June 2025"
 #define NRI_FRAMEWORK               1
 
 // Platform detection
@@ -42,6 +42,7 @@
 // 3rd party
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
+
 #include "imgui.h"
 
 // NRI: core & common extensions
