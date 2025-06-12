@@ -159,7 +159,10 @@ public:
 
     // Render
     virtual void RenderFrame(uint32_t frameIndex) = 0;
-    void RenderImgui(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
+
+    // UI
+    void CmdCopyImguiData(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer);
+    void CmdDrawImgui(nri::CommandBuffer& commandBuffer, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
 
     // Destroy
     virtual ~SampleBase();
