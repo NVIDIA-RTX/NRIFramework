@@ -591,7 +591,7 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     // Main initialization
     printf("Loading...\n");
 
-    bool result = Initialize(graphicsAPI);
+    bool result = Initialize(graphicsAPI, true);
 
     // Set callbacks and show window
     glfwSetWindowUserPointer(m_Window, this);

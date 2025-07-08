@@ -144,7 +144,7 @@ public:
     }
 
     // Initialize
-    virtual bool Initialize(nri::GraphicsAPI graphicsAPI) = 0;
+    virtual bool Initialize(nri::GraphicsAPI graphicsAPI, bool) = 0;
     bool InitImgui(nri::Device& device);
 
     // Wait before input (wait for latency and/or queued frames)
