@@ -32,9 +32,9 @@ set(VERSION_MINOR ${CMAKE_MATCH_1})
 message("NRI framework v${VERSION_MAJOR}.${VERSION_MINOR}")
 project(NRIFramework LANGUAGES C CXX)
 
-if (APPLE)
+if(APPLE)
     enable_language(OBJC)
-endif ()
+endif()
 
 # Globals?
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -43,7 +43,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compile options
-if(NOT((CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64") OR(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")))
+if(NOT ((CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64") OR (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")))
     set(SIMD -mssse3)
 endif()
 
@@ -65,6 +65,34 @@ if(WIN32)
     set(COMPILE_DEFINITIONS ${COMPILE_DEFINITIONS} WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS)
 elseif(NRIF_USE_WAYLAND)
     set(COMPILE_DEFINITIONS ${COMPILE_DEFINITIONS} NRIF_USE_WAYLAND=1)
+endif()
+
+# External/Detex
+file(GLOB DETEX_SOURCE "External/Detex/*.c" "External/Detex/*.h")
+source_group("" FILES ${DETEX_SOURCE})
+add_library(detex STATIC ${DETEX_SOURCE})
+target_compile_definitions(detex PRIVATE ${COMPILE_DEFINITIONS})
+set_property(TARGET detex PROPERTY FOLDER "${PROJECT_NAME}")
+
+# External/NRI
+option(NRI_ENABLE_WAYLAND_SUPPORT "" ${NRIF_USE_WAYLAND})
+option(NRI_ENABLE_IMGUI_EXTENSION "" ON)
+
+add_subdirectory("External/NRI")
+
+# External/MathLib
+add_subdirectory("External/MathLib")
+
+# External/MetalUtility
+if(APPLE)
+    find_library(COCOA_LIBRARY Cocoa REQUIRED)
+    find_library(QUARTZ_CORE QuartzCore REQUIRED)
+    add_library(MetalUtility SHARED "External/MetalUtility/MetalUtility.m")
+    target_link_libraries(MetalUtility
+        ${QUARTZ_CORE}
+        ${COCOA_LIBRARY}
+        glfw
+    )
 endif()
 
 # Download dependencies
@@ -103,6 +131,19 @@ FetchContent_Declare(
 )
 list(APPEND DEPS cgltf)
 
+if(NOT TARGET ShaderMake) # NRI could add it already
+    # ShaderMake
+    option(SHADERMAKE_TOOL "" ON)
+
+    FetchContent_Declare(
+        shadermake
+        GIT_REPOSITORY https://github.com/NVIDIA-RTX/ShaderMake.git
+        GIT_TAG main
+        GIT_SHALLOW 1
+    )
+    list(APPEND DEPS shadermake)
+endif()
+
 if(DEPS)
     message("NRI framework: downloading dependencies:")
     message(STATUS "${DEPS} ...")
@@ -117,33 +158,6 @@ add_library(imgui STATIC ${IMGUI_SOURCE})
 target_compile_definitions(imgui PRIVATE ${COMPILE_DEFINITIONS})
 target_include_directories(imgui PUBLIC "${imgui_SOURCE_DIR}")
 set_property(TARGET imgui PROPERTY FOLDER "${PROJECT_NAME}")
-
-# External/Detex
-file(GLOB DETEX_SOURCE "External/Detex/*.c" "External/Detex/*.h")
-source_group("" FILES ${DETEX_SOURCE})
-add_library(detex STATIC ${DETEX_SOURCE})
-target_compile_definitions(detex PRIVATE ${COMPILE_DEFINITIONS})
-set_property(TARGET detex PROPERTY FOLDER "${PROJECT_NAME}")
-
-# External/NRI
-option(NRI_ENABLE_WAYLAND_SUPPORT "" ${NRIF_USE_WAYLAND})
-option(NRI_ENABLE_IMGUI_EXTENSION "" ON)
-add_subdirectory("External/NRI")
-
-# External/MathLib
-add_subdirectory("External/MathLib")
-
-# External/MetalUtility
-if(APPLE)
-    find_library(COCOA_LIBRARY Cocoa REQUIRED)
-    find_library(QUARTZ_CORE QuartzCore REQUIRED)
-    add_library(MetalUtility SHARED "External/MetalUtility/MetalUtility.m")
-    target_link_libraries(MetalUtility
-        ${QUARTZ_CORE}
-        ${COCOA_LIBRARY}
-        glfw
-    )
-endif()
 
 # NRIFramework
 file(GLOB FRAMEWORK_SOURCE "Source/*.cpp" "Source/*.h")
