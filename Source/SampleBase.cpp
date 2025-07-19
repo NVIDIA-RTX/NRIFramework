@@ -447,7 +447,7 @@ void SampleBase::DestroyImgui() {
     if (!HasUserInterface())
         return;
 
-    m_iImgui.DestroyImgui(*m_ImguiRenderer);
+    m_iImgui.DestroyImgui(m_ImguiRenderer);
     ImGui::DestroyContext();
 
     m_ImguiRenderer = nullptr;
