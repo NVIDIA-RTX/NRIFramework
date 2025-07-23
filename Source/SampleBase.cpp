@@ -2,9 +2,11 @@
 
 #include "NRIFramework.h"
 
-#if (NRIF_PLATFORM == NRIF_WINDOWS)
+#if NRI_ENABLE_AGILITY_SDK_SUPPORT
 #    include "NRIAgilitySDK.h"
-#else
+#endif
+
+#if (NRIF_PLATFORM != NRIF_WINDOWS)
 #    include <csignal>
 #endif
 
