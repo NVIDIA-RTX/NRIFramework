@@ -72,7 +72,7 @@ file(GLOB DETEX_SOURCE "External/Detex/*.c" "External/Detex/*.h")
 source_group("" FILES ${DETEX_SOURCE})
 add_library(detex STATIC ${DETEX_SOURCE})
 target_compile_definitions(detex PRIVATE ${COMPILE_DEFINITIONS})
-set_property(TARGET detex PROPERTY FOLDER "${PROJECT_NAME}")
+set_target_properties(detex PROPERTIES FOLDER "${PROJECT_NAME}")
 
 # External/NRI
 option(NRI_ENABLE_WAYLAND_SUPPORT "" ${NRIF_USE_WAYLAND})
@@ -157,7 +157,7 @@ source_group("" FILES ${IMGUI_SOURCE})
 add_library(imgui STATIC ${IMGUI_SOURCE})
 target_compile_definitions(imgui PRIVATE ${COMPILE_DEFINITIONS})
 target_include_directories(imgui PUBLIC "${imgui_SOURCE_DIR}")
-set_property(TARGET imgui PROPERTY FOLDER "${PROJECT_NAME}")
+set_target_properties(imgui PROPERTIES FOLDER "${PROJECT_NAME}")
 
 # NRIFramework
 file(GLOB FRAMEWORK_SOURCE "Source/*.cpp" "Source/*.h")
@@ -206,4 +206,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE ${COMPILE_DEFINITIONS})
 target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
-set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "${PROJECT_NAME}")
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "${PROJECT_NAME}")
