@@ -207,3 +207,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_compile_definitions(${PROJECT_NAME} PRIVATE ${COMPILE_DEFINITIONS})
 target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "${PROJECT_NAME}")
+
+# AgilitySDK requires specific symbols to be exported from the executable, which are not needed elsewhere.
+# Any other method doesn't work. "PUBLIC" to make settings visible in the parent project (EXE).
+if(MSVC)
+    include(CheckLinkerFlag)
+    check_linker_flag(CXX /NOEXP HAS_NOEXP)
+
+    set(LINK_OPTIONS /NOIMPLIB)
+    if(HAS_NOEXP)
+        set(LINK_OPTIONS ${LINK_OPTIONS} /NOEXP)
+    endif()
+
+    target_link_options(${PROJECT_NAME} PUBLIC ${LINK_OPTIONS})
+endif()
