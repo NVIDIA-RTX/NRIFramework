@@ -138,7 +138,7 @@ if(NOT TARGET ShaderMake) # NRI could add it already
     FetchContent_Declare(
         shadermake
         GIT_REPOSITORY https://github.com/NVIDIA-RTX/ShaderMake.git
-        GIT_TAG main
+        GIT_TAG 757594f0539314467f74950c8d898e815ecbd383
         GIT_SHALLOW 1
     )
     list(APPEND DEPS shadermake)
