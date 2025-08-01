@@ -2,11 +2,18 @@ cmake_minimum_required(VERSION 3.30)
 
 include(FetchContent)
 
-# Is submodule?
+# Submodule?
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
     set(IS_SUBMODULE OFF)
 else()
     set(IS_SUBMODULE ON)
+endif()
+
+# Arm64?
+if((CMAKE_GENERATOR_PLATFORM MATCHES "ARM64") OR (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64") OR (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64"))
+    set(IS_ARM64 TRUE)
+else()
+    set(IS_ARM64 FALSE)
 endif()
 
 # Cached
@@ -43,7 +50,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compile options
-if(NOT ((CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64") OR (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")))
+if(NOT IS_ARM64)
     set(SIMD -mssse3)
 endif()
 
@@ -165,14 +172,24 @@ source_group("Source" FILES ${FRAMEWORK_SOURCE})
 file(GLOB FRAMEWORK_HEADERS "Include/*.hpp" "Include/*.h" "${cgltf_SOURCE_DIR}/cgltf.h")
 source_group("Include" FILES ${FRAMEWORK_HEADERS})
 add_library(${PROJECT_NAME} STATIC ${FRAMEWORK_SOURCE} ${FRAMEWORK_HEADERS})
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    detex
-    glfw
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        detex
+        glfw
+    PUBLIC
+        NRI
+        imgui
+        MathLib
 )
-target_link_libraries(${PROJECT_NAME} PUBLIC
-    NRI
-    imgui
-    MathLib
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        "Source"
+        "External"
+        "${cgltf_SOURCE_DIR}"
+        $<$<BOOL:${NRIF_USE_WAYLAND}>:/usr/include/wayland> # TODO: looks like a workaround...
+    PUBLIC
+        "Include"
+        "${glfw_SOURCE_DIR}/include"
 )
 
 if(APPLE)
@@ -189,21 +206,6 @@ elseif(UNIX)
     )
 endif()
 
-if(NRIF_USE_WAYLAND) # TODO: looks like a workaround...
-    target_include_directories(${PROJECT_NAME} PRIVATE
-        "/usr/include/wayland"
-    )
-endif()
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    "Source"
-    "External"
-    "${cgltf_SOURCE_DIR}"
-)
-target_include_directories(${PROJECT_NAME} PUBLIC
-    "Include"
-    "${glfw_SOURCE_DIR}/include"
-)
 target_compile_definitions(${PROJECT_NAME} PRIVATE ${COMPILE_DEFINITIONS})
 target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "${PROJECT_NAME}")
