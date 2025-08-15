@@ -74,7 +74,8 @@
 
 // Settings
 constexpr nri::VKBindingOffsets VK_BINDING_OFFSETS = {0, 128, 32, 64}; // see CMake
-constexpr bool D3D11_COMMANDBUFFER_EMULATION = false;
+constexpr bool D3D11_ENABLE_COMMAND_BUFFER_EMULATION = false;
+constexpr bool D3D12_DISABLE_ENHANCED_BARRIERS = false;
 
 // Include everything for demo purposes
 struct NRIInterface
