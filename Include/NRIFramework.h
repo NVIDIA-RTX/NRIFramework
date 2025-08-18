@@ -3,8 +3,8 @@
 #pragma once
 
 #define NRI_FRAMEWORK_VERSION_MAJOR 0
-#define NRI_FRAMEWORK_VERSION_MINOR 21
-#define NRI_FRAMEWORK_VERSION_DATE  "12 June 2025"
+#define NRI_FRAMEWORK_VERSION_MINOR 22
+#define NRI_FRAMEWORK_VERSION_DATE  "18 August 2025"
 #define NRI_FRAMEWORK               1
 
 // Platform detection
@@ -235,6 +235,7 @@ protected:
     bool m_DebugAPI = false;
     bool m_DebugNRI = false;
     bool m_AlwaysActive = false;
+    bool m_Resizable = false;
 
     // Private
 private:

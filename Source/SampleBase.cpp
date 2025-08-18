@@ -551,7 +551,7 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_VISIBLE, 0);
     glfwWindowHint(GLFW_DECORATED, decorated ? 1 : 0);
-    glfwWindowHint(GLFW_RESIZABLE, 0);
+    glfwWindowHint(GLFW_RESIZABLE, m_Resizable ? 1 : 0);
 
     nri::GraphicsAPI graphicsAPI = nri::GraphicsAPI::VK;  // Default
     std::string selectedApi = cmdLine.get<std::string>("api");
