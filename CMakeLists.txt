@@ -2,13 +2,6 @@ cmake_minimum_required(VERSION 3.30)
 
 include(FetchContent)
 
-# Submodule?
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
-    set(IS_SUBMODULE OFF)
-else()
-    set(IS_SUBMODULE ON)
-endif()
-
 # Arm64?
 if((CMAKE_GENERATOR_PLATFORM MATCHES "ARM64") OR (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64") OR (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64"))
     set(IS_ARM64 TRUE)
@@ -16,8 +9,8 @@ else()
     set(IS_ARM64 FALSE)
 endif()
 
-# Cached
-if(NOT IS_SUBMODULE)
+# Self-build?
+if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR}) # if not submodule
     get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
     if(IS_MULTI_CONFIG)
