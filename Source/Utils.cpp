@@ -71,12 +71,8 @@ static void GenerateMorphTargetVertices(utils::Scene& scene, const utils::Mesh& 
         float3 nb1 = v1.N;
         float3 nb2 = v2.N;
 
-        // src morph target data is delta
-        float3 n0 = float3((float*)(normalSrc + normalStride * i0)) + nb0;
-        float3 n1 = float3((float*)(normalSrc + normalStride * i1)) + nb1;
-        float3 n2 = float3((float*)(normalSrc + normalStride * i2)) + nb2;
-
         // Tangent
+        float3 n1 = float3((float*)(normalSrc + normalStride * i1)) + nb1;
         float r = uvEdge10.x * uvEdge20.y - uvEdge20.x * uvEdge10.y;
 
         float3 tangent, bitangent;
@@ -152,10 +148,6 @@ static void GeneratePrimitiveDataAndTangents(utils::Scene& scene, const utils::M
         float3 p1(v1.pos);
         float3 p2(v2.pos);
 
-        float3 n0 = float3(v0.N);
-        float3 n1 = float3(v1.N);
-        float3 n2 = float3(v2.N);
-
         float3 edge20 = p2 - p0;
         float3 edge10 = p1 - p0;
         float worldArea = length(cross(edge20, edge10)) * 0.5f;
@@ -169,6 +161,7 @@ static void GeneratePrimitiveDataAndTangents(utils::Scene& scene, const utils::M
         primitive.worldArea = max(worldArea, 1e-9f);
 
         // Tangent
+        float3 n1 = float3(v1.N);
         float r = uvEdge10.x * uvEdge20.y - uvEdge20.x * uvEdge10.y;
 
         float3 tangent, bitangent;
@@ -829,8 +822,6 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
             const cgltf_accessor* positions = nullptr;
             const cgltf_accessor* normals = nullptr;
             const cgltf_accessor* texcoords = nullptr;
-            const cgltf_accessor* joint_weights = nullptr;
-            const cgltf_accessor* joint_indices = nullptr;
 
             for (size_t attr_idx = 0; attr_idx < gltfSubmesh.attributes_count; attr_idx++) {
                 const cgltf_attribute& attr = gltfSubmesh.attributes[attr_idx];
@@ -852,15 +843,7 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
                         if (attr.index == 0)
                             texcoords = attr.data;
                         break;
-                    case cgltf_attribute_type_joints:
-                        assert(attr.data->type == cgltf_type_vec4);
-                        assert(attr.data->component_type == cgltf_component_type_r_8u || attr.data->component_type == cgltf_component_type_r_16u);
-                        joint_indices = attr.data;
-                        break;
-                    case cgltf_attribute_type_weights:
-                        assert(attr.data->type == cgltf_type_vec4);
-                        assert(attr.data->component_type == cgltf_component_type_r_8u || attr.data->component_type == cgltf_component_type_r_16u || attr.data->component_type == cgltf_component_type_r_32f);
-                        joint_weights = attr.data;
+                    default:
                         break;
                 }
             }
@@ -1003,6 +986,8 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
                             assert(attr.data->type == cgltf_type_vec3);
                             assert(attr.data->component_type == cgltf_component_type_r_32f);
                             target_normals = attr.data;
+                            break;
+                        default:
                             break;
                     }
                 }
@@ -1332,6 +1317,8 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
                             }
                         }
                     } break;
+                    default:
+                        break;
                 }
             }
         }

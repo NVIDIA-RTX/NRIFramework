@@ -35,6 +35,7 @@
 
 #include <array>
 #include <cinttypes>
+#include <cstddef> // offsetof
 #include <cstdlib>
 #include <string>
 #include <vector>

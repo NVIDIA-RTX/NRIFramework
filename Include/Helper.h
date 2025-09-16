@@ -23,11 +23,6 @@ constexpr uint32_t GetCountOf(const std::array<T, N>& v) {
     return (uint32_t)v.size();
 }
 
-template <typename T, typename U>
-constexpr uint32_t GetOffsetOf(U T::* member) {
-    return (uint32_t)((char*)&((T*)nullptr->*member) - (char*)nullptr);
-}
-
 template <typename T>
 constexpr size_t GetByteSizeOf(const std::vector<T>& v) {
     return v.size() * sizeof(decltype(v.back()));
