@@ -33,32 +33,10 @@ static const int modifier_table[8][4] = {
 	{ 47, 183, -47, -183 }
 };
 
-static DETEX_INLINE_ONLY int clamp2047(int x) {
-	if (x < 0)
-		return 0;
-	if (x > 2047)
-		return 2047;
-	return x;
-}
-
-static DETEX_INLINE_ONLY int clamp1023_signed(int x) {
-	if (x < - 1023)
-		return - 1023;
-	if (x > 1023)
-		return 1023;
-	return x;
-}
-
 // This function calculates the 3-bit complement value in the range -4 to 3 of a three bit
 // representation. The result is arithmetically shifted 3 places to the left before returning.
 static DETEX_INLINE_ONLY int complement3bitshifted(int x) {
 	return complement3bitshifted_table[x];
-}
-
-static DETEX_INLINE_ONLY int complement3bitshifted_slow(int x) {
-	if (x & 4)
-		return ((x & 3) - 4) << 3;	// Note: shift is arithmetic.
-	return x << 3;
 }
 
 static DETEX_INLINE_ONLY int complement3bit(int x) {
