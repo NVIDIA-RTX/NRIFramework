@@ -46,7 +46,7 @@
 
 #include "imgui.h"
 
-// NRI: core & common extensions
+// NRI: core & extensions
 #include "NRI.h"
 
 #include "Extensions/NRIDeviceCreation.h"
@@ -55,7 +55,6 @@
 #include "Extensions/NRILowLatency.h"
 #include "Extensions/NRIMeshShader.h"
 #include "Extensions/NRIRayTracing.h"
-#include "Extensions/NRIResourceAllocator.h"
 #include "Extensions/NRIStreamer.h"
 #include "Extensions/NRISwapChain.h"
 #include "Extensions/NRIUpscaler.h"
@@ -85,7 +84,6 @@ struct NRIInterface
       public nri::LowLatencyInterface,
       public nri::MeshShaderInterface,
       public nri::RayTracingInterface,
-      public nri::ResourceAllocatorInterface,
       public nri::StreamerInterface,
       public nri::SwapChainInterface,
       public nri::UpscalerInterface {
@@ -107,10 +105,6 @@ struct NRIInterface
 
     inline bool HasRayTracing() const {
         return CreateRayTracingPipeline != nullptr;
-    }
-
-    inline bool HasResourceAllocator() const {
-        return AllocateBuffer != nullptr;
     }
 
     inline bool HasStreamer() const {

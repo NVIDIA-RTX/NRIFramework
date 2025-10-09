@@ -352,15 +352,22 @@ const char* utils::GetFileName(const std::string& path) {
 //========================================================================================================================
 
 std::string utils::GetFullPath(const std::string& localPath, DataFolder dataFolder) {
-    std::string path = "_Data/"; // it's a symbolic link
+    std::string path = "";
     if (dataFolder == DataFolder::SHADERS)
-        path = "_Shaders/"; // special folder with generated files
+        path = "_Shaders/";
     else if (dataFolder == DataFolder::TEXTURES)
-        path += "Textures/";
+        path = "_Data/Textures/";
     else if (dataFolder == DataFolder::SCENES)
-        path += "Scenes/";
+        path = "_Data/Scenes/";
     else if (dataFolder == DataFolder::TESTS)
-        path = "Tests/"; // special folder stored in Git
+        path = "Tests/";
+
+    for (uint32_t i = 0 ; i < 4; i++) {
+        if (std::filesystem::exists(path))
+            break;
+
+        path = "../" + path;
+    }
 
     return path + localPath;
 }
