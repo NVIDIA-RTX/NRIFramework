@@ -102,7 +102,7 @@ set(DEPS)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG master
+    GIT_TAG v1.92.4
     GIT_SHALLOW 1
 )
 list(APPEND DEPS imgui)
