@@ -395,13 +395,13 @@ bool SampleBase::InitImgui(nri::Device& device) {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
-    float contentScale = 1.0f;
-    if (m_DpiMode != 0) {
-        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 
-        float unused;
-        glfwGetMonitorContentScale(monitor, &contentScale, &unused);
-    }
+    float contentScale = 1.0f;
+    float unused = 0.0f;
+    glfwGetMonitorContentScale(monitor, &contentScale, &unused);
+ 
+    printf("DPI scale %.1f%%\n", contentScale * 100.0f);
 
     ImGuiStyle& style = ImGui::GetStyle();
     style.FrameBorderSize = 1;
@@ -518,34 +518,17 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     // Window size
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 
-    float contentScale = 1.0f;
-    if (m_DpiMode != 0) {
-        float unused;
-        glfwGetMonitorContentScale(monitor, &contentScale, &unused);
-        printf("DPI scale %.1f%% (%s)\n", contentScale * 100.0f, m_DpiMode == 2 ? "quality" : "performance");
-    }
-
-    m_WindowResolution.x = (uint32_t)floor(m_OutputResolution.x * contentScale);
-    m_WindowResolution.y = (uint32_t)floor(m_OutputResolution.y * contentScale);
-
     const GLFWvidmode* vidmode = glfwGetVideoMode(monitor);
     const uint32_t screenW = (uint32_t)vidmode->width;
     const uint32_t screenH = (uint32_t)vidmode->height;
 
-    m_WindowResolution.x = min(m_WindowResolution.x, screenW);
-    m_WindowResolution.y = min(m_WindowResolution.y, screenH);
-
-    // Rendering output size
-    m_OutputResolution.x = min(m_OutputResolution.x, m_WindowResolution.x);
-    m_OutputResolution.y = min(m_OutputResolution.y, m_WindowResolution.y);
-
-    if (m_DpiMode == 2)
-        m_OutputResolution = m_WindowResolution;
+    m_OutputResolution.x = min(m_OutputResolution.x, screenW);
+    m_OutputResolution.y = min(m_OutputResolution.y, screenH);
 
     // Window creation
-    bool decorated = m_WindowResolution.x != screenW && m_WindowResolution.y != screenH;
+    bool decorated = m_OutputResolution.x != screenW && m_OutputResolution.y != screenH;
 
-    printf("Creating %swindow (%u, %u)\n", decorated ? "" : "borderless ", m_WindowResolution.x, m_WindowResolution.y);
+    printf("Creating %swindow (%u, %u)\n", decorated ? "" : "borderless ", m_OutputResolution.x, m_OutputResolution.y);
 
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -566,15 +549,15 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     char windowName[256];
     snprintf(windowName, sizeof(windowName), "%s [%s]", windowTitle, nri::nriGetGraphicsAPIString(graphicsAPI));
 
-    m_Window = glfwCreateWindow(m_WindowResolution.x, m_WindowResolution.y, windowName, NULL, NULL);
+    m_Window = glfwCreateWindow(m_OutputResolution.x, m_OutputResolution.y, windowName, NULL, NULL);
     if (!m_Window) {
         glfwTerminate();
         return false;
     }
 
 #if (NRIF_PLATFORM != NRIF_WAYLAND)
-    int32_t x = (screenW - m_WindowResolution.x) >> 1;
-    int32_t y = (screenH - m_WindowResolution.y) >> 1;
+    int32_t x = (screenW - m_OutputResolution.x) >> 1;
+    int32_t y = (screenH - m_OutputResolution.y) >> 1;
     glfwSetWindowPos(m_Window, x, y); // GLFW error[65548]: Wayland: The platform does not support setting the window position
 #endif
 
@@ -621,7 +604,7 @@ void SampleBase::RenderLoop() {
 
         if (HasUserInterface()) {
             ImGuiIO& io = ImGui::GetIO();
-            io.DisplaySize = ImVec2((float)m_WindowResolution.x, (float)m_WindowResolution.y);
+            io.DisplaySize = ImVec2((float)m_OutputResolution.x, (float)m_OutputResolution.y);
             io.DeltaTime = (float)(glfwGetTime() - imguiTimeStampPrev);
             imguiTimeStampPrev = glfwGetTime();
 
@@ -714,7 +697,6 @@ void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
     cmdLine.add<uint32_t>("height", 'h', "output resolution height", false, m_OutputResolution.y);
     cmdLine.add<uint32_t>("frameNum", 'f', "close after N frames", false, m_FrameNum);
     cmdLine.add<double>("timeLimit", 't', "close after N seconds", false, m_TimeLimit);
-    cmdLine.add<uint32_t>("dpiMode", 0, "DPI mode", false, m_DpiMode);
     cmdLine.add<uint32_t>("adapter", 0, "Adapter index (0 - best)", false, m_AdapterIndex);
     cmdLine.add("vsync", 'v', "vertical sync");
     cmdLine.add("debugAPI", 0, "enable graphics API validation layer");
@@ -728,7 +710,6 @@ void SampleBase::ReadCmdLineDefault(cmdline::parser& cmdLine) {
     m_OutputResolution.y = cmdLine.get<uint32_t>("height");
     m_FrameNum = cmdLine.get<uint32_t>("frameNum");
     m_TimeLimit = cmdLine.get<double>("timeLimit");
-    m_DpiMode = cmdLine.get<uint32_t>("dpiMode");
     m_AdapterIndex = cmdLine.get<uint32_t>("adapter");
     m_Vsync = (uint8_t)cmdLine.exist("vsync");
     m_DebugAPI = cmdLine.exist("debugAPI");

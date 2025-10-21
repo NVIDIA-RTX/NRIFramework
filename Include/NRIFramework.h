@@ -192,10 +192,6 @@ public:
         return m_MouseWheel;
     }
 
-    inline uint2 GetWindowResolution() const {
-        return m_WindowResolution;
-    }
-
     inline uint2 GetOutputResolution() const {
         return m_OutputResolution;
     }
@@ -221,8 +217,6 @@ protected:
     Camera m_Camera;
     Timer m_Timer;
     uint2 m_OutputResolution = {1920, 1080};
-    uint2 m_WindowResolution = {};
-    uint32_t m_DpiMode = 0;
     uint32_t m_RngState = 0;
     uint32_t m_AdapterIndex = 0;
     float m_MouseSensitivity = 1.0f;
