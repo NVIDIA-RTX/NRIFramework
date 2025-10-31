@@ -102,6 +102,7 @@ struct Texture {
 struct Material {
     float4 baseColorAndMetalnessScale = float4(1.0f);
     float4 emissiveAndRoughnessScale = float4(1.0f);
+    float2 normalUvScale = float2(1.0f);
 
     uint32_t baseColorTexIndex = StaticTexture::Black; // TODO: use StaticTexture::Invalid for debug purposes
     uint32_t roughnessMetalnessTexIndex = StaticTexture::Black;
@@ -110,6 +111,7 @@ struct Material {
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     bool isHair;
     bool isLeaf;
+    bool isSkin;
 
     inline bool IsOpaque() const {
         return alphaMode == AlphaMode::OPAQUE;
@@ -164,8 +166,8 @@ struct Mesh {
 struct MeshInstance {
     uint32_t meshIndex = 0;
     uint32_t primitiveOffset = 0;
-    uint32_t morphedVertexOffset = InvalidIndex;
-    uint32_t morphedPrimitiveOffset = InvalidIndex;
+    uint32_t morphVertexOffset = InvalidIndex;
+    uint32_t morphPrimitiveOffset = InvalidIndex;
     uint32_t blasIndex = InvalidIndex; // BLAS index for dynamic geometry in a user controlled array
 };
 
@@ -277,9 +279,9 @@ struct Scene {
     cBoxf aabb;
 
     uint32_t totalInstancedPrimitivesNum = 0;
-    uint32_t morphMeshTotalIndicesNum = 0;
-    uint32_t morphedVerticesNum = 0;
-    uint32_t morphedPrimitivesNum = 0;
+    uint32_t morphIndexNum = 0;
+    uint32_t morphVertexNum = 0;
+    uint32_t morphPrimitiveNum = 0;
 
     void Animate(float animationSpeed, float elapsedTime, float& animationProgress, uint32_t animationIndex);
 

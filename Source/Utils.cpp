@@ -37,8 +37,7 @@ constexpr std::array<Shader, 13> gShaderExts = {{
 // MISC
 //========================================================================================================================
 
-static void GenerateMorphTargetVertices(utils::Scene& scene, const utils::Mesh& mesh, uint32_t morphTargetIndex,
-    const uint8_t* positionSrc, size_t positionStride, const uint8_t* normalSrc, size_t normalStride) {
+static void GenerateMorphTargetVertices(utils::Scene& scene, const utils::Mesh& mesh, uint32_t morphTargetIndex, const uint8_t* positionSrc, size_t positionStride, const uint8_t* normalSrc, size_t normalStride) {
     std::vector<float3> tangents(mesh.vertexNum, float3::Zero());
     std::vector<float3> bitangents(mesh.vertexNum, float3::Zero());
 
@@ -362,7 +361,7 @@ std::string utils::GetFullPath(const std::string& localPath, DataFolder dataFold
     else if (dataFolder == DataFolder::TESTS)
         path = "Tests/";
 
-    for (uint32_t i = 0 ; i < 4; i++) {
+    for (uint32_t i = 0; i < 4; i++) {
         if (std::filesystem::exists(path))
             break;
 
@@ -577,6 +576,9 @@ static const char* cgltfErrorToString(cgltf_result res) {
 }
 
 static std::pair<const uint8_t*, size_t> cgltfBufferIterator(const cgltf_accessor* accessor, size_t defaultStride) {
+    if (!accessor)
+        return std::make_pair(nullptr, 0);
+
     // TODO: sparse accessor support
     const cgltf_buffer_view* view = accessor->buffer_view;
     const uint8_t* data = (uint8_t*)view->buffer->data + view->offset + accessor->offset;
@@ -650,7 +652,7 @@ static const cgltf_image* ParseDdsImage(const cgltf_texture* texture, const cglt
     return nullptr;
 }
 
-void DecomposeAffine(const float4x4& transform, float3& translation, float4& rotation, float3& scale) {
+static void DecomposeAffine(const float4x4& transform, float3& translation, float4& rotation, float3& scale) {
     translation = transform.Col(3).xyz;
 
     float3 col0 = transform.Col(0).xyz;
@@ -681,6 +683,44 @@ void DecomposeAffine(const float4x4& transform, float3& translation, float4& rot
     rotation.x = std::copysign(rotation.x, col2.y - col1.z);
     rotation.y = std::copysign(rotation.y, col0.z - col2.x);
     rotation.z = std::copysign(rotation.z, col1.x - col0.y);
+}
+
+static inline bool IsGltfPrimitiveSupported(const cgltf_primitive& primitive) {
+    return (primitive.type == cgltf_primitive_type_triangles || primitive.type == cgltf_primitive_type_lines) && primitive.attributes_count > 0;
+}
+
+static inline void GetBasis(float3 N, float3& T, float3& B) {
+    float sz = sign(N.z);
+    float a = 1.0f / (sz + N.z);
+    float ya = N.y * a;
+    float b = N.x * ya;
+    float c = N.x * sz;
+
+    T = float3(c * N.x * a - 1.0f, sz * b, c);
+    B = float3(b, N.y * ya - sz, N.y);
+}
+
+static inline void SetVertex(utils::Scene& scene, uint32_t i, const float3& p, const float2& uv, const float3& N, const float3& T) {
+    utils::UnpackedVertex& v = scene.unpackedVertices[i];
+    v.pos[0] = p.x;
+    v.pos[1] = p.y;
+    v.pos[2] = p.z;
+    v.uv[0] = uv.x;
+    v.uv[1] = uv.y;
+    v.N[0] = N.x;
+    v.N[1] = N.y;
+    v.N[2] = N.z;
+    v.T[0] = T.x;
+    v.T[1] = T.y;
+    v.T[2] = T.z;
+
+    utils::Vertex& vp = scene.vertices[i];
+    vp.pos[0] = p.x;
+    vp.pos[1] = p.y;
+    vp.pos[2] = p.z;
+    vp.uv = Packing::float2_to_float16_t2(uv);
+    vp.N = Packing::float4_to_unorm<10, 10, 10, 2>(float4(N * 0.5f + 0.5f, 0.0f));
+    vp.T = Packing::float4_to_unorm<10, 10, 10, 2>(float4(T * 0.5f + 0.5f, 0.0f));
 }
 
 bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
@@ -718,8 +758,10 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
 
         for (size_t prim_idx = 0; prim_idx < gltfMesh.primitives_count; prim_idx++) {
             const cgltf_primitive& gltfSubmesh = gltfMesh.primitives[prim_idx];
-            if (gltfSubmesh.type != cgltf_primitive_type_triangles || gltfSubmesh.attributes_count == 0)
+            if (!IsGltfPrimitiveSupported(gltfSubmesh)) {
+                printf("ERROR: GLTF primitive type '%u'' is not supported\n", gltfSubmesh.type);
                 continue;
+            }
 
             meshPrimMap[prim_idx] = meshNum++;
         }
@@ -732,44 +774,49 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
     uint32_t meshOffset = (uint32_t)scene.meshes.size();
     scene.meshes.resize(meshOffset + meshNum);
 
-    size_t totalIndices = scene.indices.size();
-    size_t totalVertices = scene.vertices.size();
-    size_t totalMorphMeshVertices = scene.morphVertices.size();
+    size_t totalIndexNum = scene.indices.size();
+    size_t totalVertexNum = scene.vertices.size();
+    size_t totalMorphVertexNum = scene.morphVertices.size();
 
     for (size_t mesh_idx = 0; mesh_idx < objects->meshes_count; mesh_idx++) {
         const cgltf_mesh& gltfMesh = objects->meshes[mesh_idx];
 
         for (size_t prim_idx = 0; prim_idx < gltfMesh.primitives_count; prim_idx++) {
             const cgltf_primitive& gltfSubmesh = gltfMesh.primitives[prim_idx];
-            if (gltfSubmesh.type != cgltf_primitive_type_triangles || gltfSubmesh.attributes_count == 0)
+            if (!IsGltfPrimitiveSupported(gltfSubmesh))
                 continue;
 
-            size_t meshVertices = 0;
-
-            // search for position, first attribute may not be position and may have different size if malformed
+            cgltf_size vertexNum = 0;
             for (size_t attr_idx = 0; attr_idx < gltfSubmesh.attributes_count; attr_idx++) {
                 const cgltf_attribute& attr = gltfSubmesh.attributes[attr_idx];
                 if (attr.type == cgltf_attribute_type_position) {
-                    meshVertices = attr.data->count;
+                    vertexNum = attr.data->count;
                     break;
                 }
             }
 
-            if (meshVertices == 0)
+            if (vertexNum == 0)
                 continue;
 
-            size_t meshIndices = gltfSubmesh.indices ? gltfSubmesh.indices->count : meshVertices;
+            if (gltfSubmesh.type == cgltf_primitive_type_lines) {
+                assert(!gltfSubmesh.indices);
+                cgltf_size lineNum = vertexNum / 2;
+                vertexNum = lineNum * 12; // 4 tris
+            }
+
+            cgltf_size indexNum = gltfSubmesh.indices ? gltfSubmesh.indices->count : vertexNum;
             uint32_t meshIndex = meshOffset + (uint32_t)meshesPrimMap[mesh_idx][prim_idx];
 
             Mesh& mesh = scene.meshes[meshIndex];
-            mesh.indexOffset = (uint32_t)totalIndices;
-            mesh.vertexOffset = (uint32_t)totalVertices;
-            mesh.indexNum = (uint32_t)meshIndices;
-            mesh.vertexNum = (uint32_t)meshVertices;
+            mesh.indexOffset = (uint32_t)totalIndexNum;
+            mesh.vertexOffset = (uint32_t)totalVertexNum;
+            mesh.indexNum = (uint32_t)indexNum;
+            mesh.vertexNum = (uint32_t)vertexNum;
 
-            totalIndices += mesh.indexNum;
-            totalVertices += mesh.vertexNum;
+            totalIndexNum += mesh.indexNum;
+            totalVertexNum += mesh.vertexNum;
 
+            // Morph targets
             bool hasMorphTargets = gltfSubmesh.targets_count > 0;
             for (uint32_t target_idx = 0; target_idx < gltfSubmesh.targets_count; target_idx++) {
                 const cgltf_morph_target& morphTarget = gltfSubmesh.targets[target_idx];
@@ -795,23 +842,23 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
             }
 
             if (hasMorphTargets) {
-                mesh.morphMeshIndexOffset = scene.morphMeshTotalIndicesNum;
-                mesh.morphTargetVertexOffset = (uint32_t)totalMorphMeshVertices;
+                mesh.morphMeshIndexOffset = scene.morphIndexNum;
+                mesh.morphTargetVertexOffset = (uint32_t)totalMorphVertexNum;
                 mesh.morphTargetNum = (uint32_t)gltfSubmesh.targets_count;
 
-                scene.morphMeshTotalIndicesNum += mesh.indexNum;
-                totalMorphMeshVertices += mesh.vertexNum * mesh.morphTargetNum;
+                scene.morphIndexNum += mesh.indexNum;
+                totalMorphVertexNum += mesh.vertexNum * mesh.morphTargetNum;
 
                 scene.morphMeshes.push_back(meshIndex);
             }
         }
     }
 
-    scene.indices.resize(totalIndices);
-    scene.primitives.resize(totalIndices / 3);
-    scene.vertices.resize(totalVertices);
-    scene.unpackedVertices.resize(totalVertices);
-    scene.morphVertices.resize(totalMorphMeshVertices);
+    scene.indices.resize(totalIndexNum);
+    scene.primitives.resize(totalIndexNum / 3);
+    scene.vertices.resize(totalVertexNum);
+    scene.unpackedVertices.resize(totalVertexNum);
+    scene.morphVertices.resize(totalMorphVertexNum);
 
     // Geometry
     for (size_t mesh_idx = 0; mesh_idx < objects->meshes_count; mesh_idx++) {
@@ -819,46 +866,16 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
 
         for (size_t prim_idx = 0; prim_idx < gltfMesh.primitives_count; prim_idx++) {
             const cgltf_primitive& gltfSubmesh = gltfMesh.primitives[prim_idx];
-            if (gltfSubmesh.type != cgltf_primitive_type_triangles || gltfSubmesh.attributes_count == 0)
+            if (!IsGltfPrimitiveSupported(gltfSubmesh))
                 continue;
 
             size_t meshIndex = meshOffset + meshesPrimMap[mesh_idx][prim_idx];
             Mesh& mesh = scene.meshes[meshIndex];
             mesh.aabb.Clear();
 
-            const cgltf_accessor* positions = nullptr;
-            const cgltf_accessor* normals = nullptr;
-            const cgltf_accessor* texcoords = nullptr;
-
-            for (size_t attr_idx = 0; attr_idx < gltfSubmesh.attributes_count; attr_idx++) {
-                const cgltf_attribute& attr = gltfSubmesh.attributes[attr_idx];
-
-                switch (attr.type) {
-                    case cgltf_attribute_type_position:
-                        assert(attr.data->type == cgltf_type_vec3);
-                        assert(attr.data->component_type == cgltf_component_type_r_32f);
-                        positions = attr.data;
-                        break;
-                    case cgltf_attribute_type_normal:
-                        assert(attr.data->type == cgltf_type_vec3);
-                        assert(attr.data->component_type == cgltf_component_type_r_32f);
-                        normals = attr.data;
-                        break;
-                    case cgltf_attribute_type_texcoord:
-                        assert(attr.data->type == cgltf_type_vec2);
-                        assert(attr.data->component_type == cgltf_component_type_r_32f);
-                        if (attr.index == 0)
-                            texcoords = attr.data;
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            assert(positions);
-            assert(mesh.vertexNum == positions->count);
-
-            if (gltfSubmesh.indices) { // indexed geometry
+            // Indices
+            if (gltfSubmesh.indices) {
+                // Indexed geometry
                 assert(gltfSubmesh.indices->component_type == cgltf_component_type_r_32u || gltfSubmesh.indices->component_type == cgltf_component_type_r_16u || gltfSubmesh.indices->component_type == cgltf_component_type_r_8u);
                 assert(gltfSubmesh.indices->type == cgltf_type_scalar);
 
@@ -895,120 +912,185 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
                     default:
                         assert(false);
                 }
-            } else { // unindexed geometry
+            } else {
+                // Unindexed geometry
                 for (size_t i_idx = 0; i_idx < mesh.vertexNum; i_idx++)
                     scene.indices[mesh.indexOffset + i_idx] = (Index)i_idx;
             }
 
-            if (positions) {
-                auto [positionSrc, positionStride] = cgltfBufferIterator(positions, sizeof(float) * 3);
+            { // Vertices
+                const cgltf_accessor* positions = nullptr;
+                const cgltf_accessor* normals = nullptr;
+                const cgltf_accessor* texcoords = nullptr;
+                const cgltf_accessor* custom = nullptr;
 
-                for (size_t v_idx = 0; v_idx < mesh.vertexNum; v_idx++) {
-                    float3 position((const float*)positionSrc);
-
-                    UnpackedVertex& unpackedVertex = scene.unpackedVertices[mesh.vertexOffset + v_idx];
-                    unpackedVertex.pos[0] = position.x;
-                    unpackedVertex.pos[1] = position.y;
-                    unpackedVertex.pos[2] = position.z;
-
-                    Vertex& vertex = scene.vertices[mesh.vertexOffset + v_idx];
-                    vertex.pos[0] = position.x;
-                    vertex.pos[1] = position.y;
-                    vertex.pos[2] = position.z;
-
-                    mesh.aabb.Add(position);
-
-                    positionSrc += positionStride;
-                }
-            }
-
-            if (normals) {
-                assert(normals->count == positions->count);
-
-                auto [normalSrc, normalStride] = cgltfBufferIterator(normals, sizeof(float) * 3);
-
-                for (size_t v_idx = 0; v_idx < mesh.vertexNum; v_idx++) {
-                    float3 normal((const float*)normalSrc);
-                    normal = normalize(normal);
-
-                    UnpackedVertex& unpackedVertex = scene.unpackedVertices[mesh.vertexOffset + v_idx];
-                    unpackedVertex.N[0] = normal.x;
-                    unpackedVertex.N[1] = normal.y;
-                    unpackedVertex.N[2] = normal.z;
-
-                    Vertex& vertex = scene.vertices[mesh.vertexOffset + v_idx];
-                    vertex.N = Packing::float4_to_unorm<10, 10, 10, 2>(float4(normal * 0.5f + 0.5f, 0.0f));
-
-                    normalSrc += normalStride;
-                }
-            }
-
-            if (texcoords) {
-                assert(texcoords->count == positions->count);
-
-                auto [texcoordSrc, texcoordStride] = cgltfBufferIterator(texcoords, sizeof(float) * 2);
-
-                for (size_t v_idx = 0; v_idx < mesh.vertexNum; v_idx++) {
-                    const float* uv = (const float*)texcoordSrc;
-
-                    float u = min(uv[0], 65504.0f);
-                    float v = min(uv[1], 65504.0f);
-
-                    UnpackedVertex& unpackedVertex = scene.unpackedVertices[mesh.vertexOffset + v_idx];
-                    unpackedVertex.uv[0] = u;
-                    unpackedVertex.uv[1] = v;
-
-                    Vertex& vertex = scene.vertices[mesh.vertexOffset + v_idx];
-                    vertex.uv = Packing::float2_to_float16_t2(float2(u, v));
-
-                    texcoordSrc += texcoordStride;
-                }
-            } else {
-                for (size_t v_idx = 0; v_idx < mesh.vertexNum; v_idx++) {
-                    UnpackedVertex& unpackedVertex = scene.unpackedVertices[mesh.vertexOffset + v_idx];
-                    unpackedVertex.uv[0] = 0.0f;
-                    unpackedVertex.uv[1] = 0.0f;
-
-                    Vertex& vertex = scene.vertices[mesh.vertexOffset + v_idx];
-                    vertex.uv.x = 0;
-                    vertex.uv.y = 0;
-                }
-            }
-
-            for (uint32_t target_idx = 0; target_idx < gltfSubmesh.targets_count; target_idx++) {
-                const cgltf_morph_target& target = gltfSubmesh.targets[target_idx];
-                const cgltf_accessor* target_positions = nullptr;
-                const cgltf_accessor* target_normals = nullptr;
-
-                for (size_t attr_idx = 0; attr_idx < target.attributes_count; attr_idx++) {
-                    const cgltf_attribute& attr = target.attributes[attr_idx];
+                for (size_t attr_idx = 0; attr_idx < gltfSubmesh.attributes_count; attr_idx++) {
+                    const cgltf_attribute& attr = gltfSubmesh.attributes[attr_idx];
 
                     switch (attr.type) {
                         case cgltf_attribute_type_position:
                             assert(attr.data->type == cgltf_type_vec3);
                             assert(attr.data->component_type == cgltf_component_type_r_32f);
-                            target_positions = attr.data;
+                            positions = attr.data;
                             break;
                         case cgltf_attribute_type_normal:
                             assert(attr.data->type == cgltf_type_vec3);
                             assert(attr.data->component_type == cgltf_component_type_r_32f);
-                            target_normals = attr.data;
+                            normals = attr.data;
                             break;
-                        default:
+                        case cgltf_attribute_type_texcoord:
+                            assert(attr.data->type == cgltf_type_vec2);
+                            assert(attr.data->component_type == cgltf_component_type_r_32f);
+                            if (attr.index == 0)
+                                texcoords = attr.data;
+                            break;
+                        case cgltf_attribute_type_custom:
+                            if (strncmp(attr.name, "_RADIUS", 7) == 0) {
+                                assert(attr.data->type == cgltf_type_scalar);
+                                assert(attr.data->component_type == cgltf_component_type_r_32f);
+                                custom = attr.data;
+                            }
                             break;
                     }
                 }
 
-                assert(target_positions && target_normals);
+                assert(positions);
 
-                auto [positionSrc, positionStride] = cgltfBufferIterator(target_positions, sizeof(float) * 3);
-                auto [normalSrc, normalStride] = cgltfBufferIterator(target_normals, sizeof(float) * 3);
+                auto [positionSrc, positionStride] = cgltfBufferIterator(positions, sizeof(float) * 3);
 
-                GenerateMorphTargetVertices(scene, mesh, target_idx, positionSrc, positionStride, normalSrc, normalStride);
+                if (gltfSubmesh.type == cgltf_primitive_type_lines) {
+                    // Transform "lines" into "disjoint orthogonal triangle strips" (DOTS) for hair rendering
+                    auto [customSrc, customStride] = cgltfBufferIterator(custom, sizeof(float));
+                    uint32_t lineNum = mesh.vertexNum / 12;
+                    const float dotsVolumeCompensationScale = 1.0f / (sin(Pi(0.25f)) / Pi(0.25f));
+
+                    for (uint32_t line_idx = 0; line_idx < lineNum; line_idx++) {
+                        float3 p0((float*)(positionSrc + positionStride * (line_idx * 2 + 0)));
+                        float3 p1((float*)(positionSrc + positionStride * (line_idx * 2 + 1)));
+
+                        float r0 = *(float*)(customSrc + customStride * (line_idx * 2 + 0));
+                        float r1 = *(float*)(customSrc + customStride * (line_idx * 2 + 1));
+
+                        r0 *= dotsVolumeCompensationScale;
+                        r1 *= dotsVolumeCompensationScale;
+
+                        float3 T = normalize(p1 - p0);
+
+                        float3 s, t;
+                        GetBasis(T, s, t);
+
+                        mesh.aabb.Add(p0);
+                        mesh.aabb.Add(p1);
+
+                        const float2 uv = float2(0.0f);
+                        uint32_t baseVertex = mesh.vertexOffset + line_idx * 12;
+
+                        for (uint32_t face = 0; face < 2; ++face) {
+                            float3 n = face == 0 ? s : t;
+
+                            float3 p = p0 + n * r0;
+                            SetVertex(scene, baseVertex + face * 6 + 0, p, uv, n, T);
+
+                            p = p1 - n * r1;
+                            SetVertex(scene, baseVertex + face * 6 + 1, p, uv, -n, T);
+
+                            p = p1 + n * r1;
+                            SetVertex(scene, baseVertex + face * 6 + 2, p, uv, n, T);
+
+                            p = p0 + n * r0;
+                            SetVertex(scene, baseVertex + face * 6 + 3, p, uv, n, T);
+
+                            p = p0 - n * r0;
+                            SetVertex(scene, baseVertex + face * 6 + 4, p, uv, -n, T);
+
+                            p = p1 - n * r1;
+                            SetVertex(scene, baseVertex + face * 6 + 5, p, uv, -n, T);
+                        }
+                    }
+                } else {
+                    auto [normalSrc, normalStride] = cgltfBufferIterator(normals, sizeof(float) * 3);
+                    auto [texcoordSrc, texcoordStride] = cgltfBufferIterator(texcoords, sizeof(float) * 2);
+
+                    for (size_t v_idx = 0; v_idx < mesh.vertexNum; v_idx++) {
+                        float3 pos((float*)positionSrc);
+                        positionSrc += positionStride;
+
+                        float3 N = float3(0.0f, 0.0f, 1.0f);
+                        if (normalSrc) {
+                            N = float3((float*)normalSrc);
+                            N = normalize(N);
+                            normalSrc += normalStride;
+                        }
+
+                        float u = 0.0f;
+                        float v = 0.0f;
+                        if (texcoordSrc) {
+                            const float* uv = (float*)texcoordSrc;
+                            u = uv[0];
+                            v = uv[1];
+                            texcoordSrc += texcoordStride;
+                        }
+
+                        UnpackedVertex& unpackedVertex = scene.unpackedVertices[mesh.vertexOffset + v_idx];
+                        unpackedVertex.pos[0] = pos.x;
+                        unpackedVertex.pos[1] = pos.y;
+                        unpackedVertex.pos[2] = pos.z;
+                        unpackedVertex.N[0] = N.x;
+                        unpackedVertex.N[1] = N.y;
+                        unpackedVertex.N[2] = N.z;
+                        unpackedVertex.uv[0] = u;
+                        unpackedVertex.uv[1] = v;
+                        // T is computed in "GeneratePrimitiveDataAndTangents"
+
+                        Vertex& vertex = scene.vertices[mesh.vertexOffset + v_idx];
+                        vertex.pos[0] = pos.x;
+                        vertex.pos[1] = pos.y;
+                        vertex.pos[2] = pos.z;
+                        vertex.N = Packing::float4_to_unorm<10, 10, 10, 2>(float4(N * 0.5f + 0.5f, 0.0f));
+                        vertex.uv = Packing::float2_to_float16_t2(float2(u, v));
+
+                        mesh.aabb.Add(pos);
+                    }
+                }
+            }
+
+            { // Morph targets
+                for (uint32_t target_idx = 0; target_idx < gltfSubmesh.targets_count; target_idx++) {
+                    const cgltf_morph_target& target = gltfSubmesh.targets[target_idx];
+                    const cgltf_accessor* target_positions = nullptr;
+                    const cgltf_accessor* target_normals = nullptr;
+
+                    for (size_t attr_idx = 0; attr_idx < target.attributes_count; attr_idx++) {
+                        const cgltf_attribute& attr = target.attributes[attr_idx];
+
+                        switch (attr.type) {
+                            case cgltf_attribute_type_position:
+                                assert(attr.data->type == cgltf_type_vec3);
+                                assert(attr.data->component_type == cgltf_component_type_r_32f);
+                                target_positions = attr.data;
+                                break;
+                            case cgltf_attribute_type_normal:
+                                assert(attr.data->type == cgltf_type_vec3);
+                                assert(attr.data->component_type == cgltf_component_type_r_32f);
+                                target_normals = attr.data;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
+                    assert(target_positions && target_normals);
+
+                    auto [positionSrc, positionStride] = cgltfBufferIterator(target_positions, sizeof(float) * 3);
+                    auto [normalSrc, normalStride] = cgltfBufferIterator(target_normals, sizeof(float) * 3);
+
+                    GenerateMorphTargetVertices(scene, mesh, target_idx, positionSrc, positionStride, normalSrc, normalStride);
+                }
             }
 
             // Per primitive data and tangents
-            GeneratePrimitiveDataAndTangents(scene, mesh);
+            if (gltfSubmesh.type != cgltf_primitive_type_lines)
+                GeneratePrimitiveDataAndTangents(scene, mesh);
         }
     }
 
@@ -1044,11 +1126,11 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
 
         uint32_t numPrimitives = mesh.indexNum / 3;
         if (mesh.HasMorphTargets()) {
-            meshInstance.morphedVertexOffset = scene.morphedVerticesNum;
-            scene.morphedVerticesNum += mesh.vertexNum;
+            meshInstance.morphVertexOffset = scene.morphVertexNum;
+            scene.morphVertexNum += mesh.vertexNum;
 
-            meshInstance.morphedPrimitiveOffset = scene.morphedPrimitivesNum;
-            scene.morphedPrimitivesNum += numPrimitives;
+            meshInstance.morphPrimitiveOffset = scene.morphPrimitiveNum;
+            scene.morphPrimitiveNum += numPrimitives;
         }
 
         scene.totalInstancedPrimitivesNum += numPrimitives;
@@ -1425,6 +1507,10 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
         }
 
         maps[2] = gltfMaterial.normal_texture.texture;
+        if (gltfMaterial.normal_texture.has_transform) {
+            material.normalUvScale.x = gltfMaterial.normal_texture.transform.scale[0];
+            material.normalUvScale.y = gltfMaterial.normal_texture.transform.scale[1];
+        }
         // TODO: use "gltfMaterial.alpha_cutoff"?
         // TODO: use "gltfMaterial.double_sided"?
 
@@ -1499,8 +1585,11 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
 
         const Texture* diffuseTexture = scene.textures[material.baseColorTexIndex];
         material.alphaMode = useTransmission ? AlphaMode::TRANSPARENT : diffuseTexture->alphaMode;
-        material.isHair = strstr(gltfMaterial.name, "_hair") != 0;
+
+        // TODO: hacks
+        material.isHair = strstr(gltfMaterial.name, "_hair") != 0 || strstr(gltfMaterial.name, "OmniHairBase") != 0;
         material.isLeaf = strstr(gltfMaterial.name, "Foliage") != 0;
+        material.isSkin = strstr(gltfMaterial.name, "_skin") != 0;
 
         // TODO: remove strange polygon on the window in Kitchen scene
         if (strstr(gltfMaterial.name, "Material_295"))
