@@ -101,9 +101,10 @@ set(DEPS)
 # ImGui
 FetchContent_Declare(
     imgui
-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.92.4
-    GIT_SHALLOW 1
+    DOWNLOAD_EXTRACT_TIMESTAMP 1
+    DOWNLOAD_NO_PROGRESS 1
+    SOURCE_SUBDIR "ignore CMakeLists.txt"
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.5.zip
 )
 list(APPEND DEPS imgui)
 
@@ -116,18 +117,19 @@ option(GLFW_INSTALL "" OFF)
 
 FetchContent_Declare(
     glfw
-    GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG master
-    GIT_SHALLOW 1
+    DOWNLOAD_EXTRACT_TIMESTAMP 1
+    DOWNLOAD_NO_PROGRESS 1
+    URL https://github.com/glfw/glfw/archive/162896e5b9a40dc382c5c438cd12c90a5ff86ddd.zip
 )
 list(APPEND DEPS glfw)
 
 # cgltf
 FetchContent_Declare(
     cgltf
-    GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
-    GIT_TAG master
-    GIT_SHALLOW 1
+    DOWNLOAD_EXTRACT_TIMESTAMP 1
+    DOWNLOAD_NO_PROGRESS 1
+    SOURCE_SUBDIR "ignore CMakeLists.txt"
+    URL https://github.com/jkuhlmann/cgltf/archive/a46a1116f672896ee9233a940b663a10c91b681e.zip
 )
 list(APPEND DEPS cgltf)
 
@@ -137,9 +139,9 @@ if(NOT TARGET ShaderMake) # NRI could add it already
 
     FetchContent_Declare(
         shadermake
-        GIT_REPOSITORY https://github.com/NVIDIA-RTX/ShaderMake.git
-        GIT_TAG main
-        GIT_SHALLOW 1
+        DOWNLOAD_EXTRACT_TIMESTAMP 1
+        DOWNLOAD_NO_PROGRESS 1
+        URL https://github.com/NVIDIA-RTX/ShaderMake/archive/18f5a344e7ca8fa65daaf079d07bc8ce38453e05.zip
     )
     list(APPEND DEPS shadermake)
 endif()
