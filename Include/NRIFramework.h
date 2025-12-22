@@ -208,6 +208,10 @@ public:
         return GetQueuedFrameNum() + 1;
     }
 
+    inline bool IsHalfTimeLimitReached() const {
+        return m_HalfTimeLimitReached == 1;
+    }
+
     static void EnableMemoryLeakDetection(uint32_t breakOnAllocationIndex);
 
 protected:
@@ -220,6 +224,7 @@ protected:
     uint32_t m_RngState = 0;
     uint32_t m_AdapterIndex = 0;
     float m_MouseSensitivity = 1.0f;
+    uint8_t m_HalfTimeLimitReached = 2;
     bool m_Vsync = false;
     bool m_DebugAPI = false;
     bool m_DebugNRI = false;

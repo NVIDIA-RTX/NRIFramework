@@ -400,7 +400,7 @@ bool SampleBase::InitImgui(nri::Device& device) {
     float contentScale = 1.0f;
     float unused = 0.0f;
     glfwGetMonitorContentScale(monitor, &contentScale, &unused);
- 
+
     printf("DPI scale %.1f%%\n", contentScale * 100.0f);
 
     ImGuiStyle& style = ImGui::GetStyle();
@@ -536,7 +536,7 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     glfwWindowHint(GLFW_DECORATED, decorated ? 1 : 0);
     glfwWindowHint(GLFW_RESIZABLE, m_Resizable ? 1 : 0);
 
-    nri::GraphicsAPI graphicsAPI = nri::GraphicsAPI::VK;  // Default
+    nri::GraphicsAPI graphicsAPI = nri::GraphicsAPI::VK; // Default
     std::string selectedApi = cmdLine.get<std::string>("api");
     if (selectedApi == "D3D11") {
         graphicsAPI = nri::GraphicsAPI::D3D11;
@@ -650,8 +650,15 @@ void SampleBase::RenderLoop() {
         m_Timer.UpdateFrameTime();
 
         activeTime += glfwGetTime() - timeCurr;
-        if (i > 2 && activeTime > m_TimeLimit)
-            break;
+        if (i > 8) {
+            if (activeTime > m_TimeLimit)
+                break;
+
+            if (m_HalfTimeLimitReached == 1)
+                m_HalfTimeLimitReached = 0;
+            if (m_HalfTimeLimitReached == 2 && activeTime > m_TimeLimit * 0.5)
+                m_HalfTimeLimitReached = 1;
+        }
     }
 
     printf(
