@@ -123,8 +123,8 @@ static void GenerateMorphTargetVertices(utils::Scene& scene, const utils::Mesh& 
 
         utils::MorphVertex& morphVertex = scene.morphVertices[vertexOffset + j];
         morphVertex.pos = Packing::float4_to_float16_t4(float4(P.x, P.y, P.z, handedness));
-        morphVertex.N = Packing::float2_to_float16_t2(float2(n.x, n.y));
-        morphVertex.T = Packing::float2_to_float16_t2(float2(t.x, t.y));
+        morphVertex.N = float2(float2(n.x, n.y));
+        morphVertex.T = float2(float2(t.x, t.y));
     }
 }
 
@@ -718,7 +718,7 @@ static inline void SetVertex(utils::Scene& scene, uint32_t i, const float3& p, c
     vp.pos[0] = p.x;
     vp.pos[1] = p.y;
     vp.pos[2] = p.z;
-    vp.uv = Packing::float2_to_float16_t2(uv);
+    vp.uv = float2(uv);
     vp.N = Packing::float4_to_unorm<10, 10, 10, 2>(float4(N * 0.5f + 0.5f, 0.0f));
     vp.T = Packing::float4_to_unorm<10, 10, 10, 2>(float4(T * 0.5f + 0.5f, 0.0f));
 }
@@ -1047,7 +1047,7 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
                         vertex.pos[1] = pos.y;
                         vertex.pos[2] = pos.z;
                         vertex.N = Packing::float4_to_unorm<10, 10, 10, 2>(float4(N * 0.5f + 0.5f, 0.0f));
-                        vertex.uv = Packing::float2_to_float16_t2(float2(u, v));
+                        vertex.uv = float2(float2(u, v));
 
                         mesh.aabb.Add(pos);
                     }
