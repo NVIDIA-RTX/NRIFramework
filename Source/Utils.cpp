@@ -122,9 +122,9 @@ static void GenerateMorphTargetVertices(utils::Scene& scene, const utils::Mesh& 
         float2 t = Packing::EncodeUnitVector(T, true);
 
         utils::MorphVertex& morphVertex = scene.morphVertices[vertexOffset + j];
-        morphVertex.pos = Packing::float4_to_float16_t4(float4(P.x, P.y, P.z, handedness));
-        morphVertex.N = float2(float2(n.x, n.y));
-        morphVertex.T = float2(float2(t.x, t.y));
+        morphVertex.pos = float16_t4(float4(P.x, P.y, P.z, handedness));
+        morphVertex.N = float16_t2(float2(n.x, n.y));
+        morphVertex.T = float16_t2(float2(t.x, t.y));
     }
 }
 
