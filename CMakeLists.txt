@@ -99,7 +99,7 @@ endif()
 set(DEPS)
 
 # ImGui
-FetchContent_Declare(
+fetchcontent_declare(
     imgui
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
@@ -115,7 +115,7 @@ option(GLFW_BUILD_TESTS "" OFF)
 option(GLFW_BUILD_DOCS "" OFF)
 option(GLFW_INSTALL "" OFF)
 
-FetchContent_Declare(
+fetchcontent_declare(
     glfw
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
@@ -124,7 +124,7 @@ FetchContent_Declare(
 list(APPEND DEPS glfw)
 
 # cgltf
-FetchContent_Declare(
+fetchcontent_declare(
     cgltf
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
@@ -137,7 +137,7 @@ if(NOT TARGET ShaderMake) # NRI could add it already
     # ShaderMake
     option(SHADERMAKE_TOOL "" ON)
 
-    FetchContent_Declare(
+    fetchcontent_declare(
         shadermake
         DOWNLOAD_EXTRACT_TIMESTAMP 1
         DOWNLOAD_NO_PROGRESS 1
@@ -150,7 +150,7 @@ if(DEPS)
     message("NRI framework: downloading dependencies:")
     message(STATUS "${DEPS} ...")
 
-    FetchContent_MakeAvailable(${DEPS})
+    fetchcontent_makeavailable(${DEPS})
 endif()
 
 # External/Imgui
