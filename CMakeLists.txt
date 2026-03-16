@@ -104,7 +104,7 @@ fetchcontent_declare(
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
     SOURCE_SUBDIR "ignore CMakeLists.txt"
-    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.5.zip
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.6.zip
 )
 list(APPEND DEPS imgui)
 
@@ -119,7 +119,7 @@ fetchcontent_declare(
     glfw
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
-    URL https://github.com/glfw/glfw/archive/162896e5b9a40dc382c5c438cd12c90a5ff86ddd.zip
+    URL https://github.com/glfw/glfw/archive/fdd14e65b1c29e4e6df875fb5669ec00d6793531.zip
 )
 list(APPEND DEPS glfw)
 
@@ -129,7 +129,7 @@ fetchcontent_declare(
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
     SOURCE_SUBDIR "ignore CMakeLists.txt"
-    URL https://github.com/jkuhlmann/cgltf/archive/a46a1116f672896ee9233a940b663a10c91b681e.zip
+    URL https://github.com/jkuhlmann/cgltf/archive/85cd62382dfea638278962690cf515023f33ed00.zip
 )
 list(APPEND DEPS cgltf)
 
