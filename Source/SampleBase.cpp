@@ -429,7 +429,7 @@ bool SampleBase::InitImgui(nri::Device& device) {
     // Font
     ImFontConfig fontConfig = {};
     fontConfig.SizePixels = floor(13.0f * contentScale);
-    io.Fonts->AddFontDefault(&fontConfig);
+    io.Fonts->AddFontDefaultVector(&fontConfig);
 
     // Renderer
     nri::Result result = nri::nriGetInterface(device, NRI_INTERFACE(nri::ImguiInterface), &m_iImgui);
