@@ -1418,59 +1418,62 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
     scene.textures.reserve(newCapacity);
 
     if (scene.textures.empty()) {
-        // StaticTexture::Black
-        {
+        { // StaticTexture::Black
             Texture* texture = new Texture;
             const std::string& texPath = GetFullPath("black.png", DataFolder::TEXTURES);
             NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
             scene.textures.push_back(texture);
         }
 
-        // StaticTexture::White
-        {
+        { // StaticTexture::White
             Texture* texture = new Texture;
             const std::string& texPath = GetFullPath("white.png", DataFolder::TEXTURES);
             NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
             scene.textures.push_back(texture);
         }
 
-        // StaticTexture::Invalid
-        {
+        { // StaticTexture::Invalid
             Texture* texture = new Texture;
             const std::string& texPath = GetFullPath("checkerboard0.dds", DataFolder::TEXTURES);
             NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture, true));
             scene.textures.push_back(texture);
         }
 
-        // StaticTexture::FlatNormal
-        {
+        { // StaticTexture::FlatNormal
             Texture* texture = new Texture;
             const std::string& texPath = GetFullPath("flatnormal.png", DataFolder::TEXTURES);
             NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
             scene.textures.push_back(texture);
         }
 
-        // StaticTexture::ScramblingRanking
-        {
-            Texture* texture = new Texture;
-            const std::string& texPath = GetFullPath("scrambling_ranking_128x128_2d_4spp.png", DataFolder::TEXTURES);
-            NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
-#if (NRIF_PLATFORM != NRIF_COCOA)
-            // TODO: Metal complains that "RGBA8_UINT" can be cast to "float" despite the fact that all static textures are
-            // never accessed as material textures for objects rendering. Better separate static textures and material textures
-            texture->OverrideFormat(nri::Format::RGBA8_UINT);
+        // TODO: Metal complains that "RGBA8_UINT" can't be cast to "float" despite the fact that all static textures are
+        // never accessed as material textures for objects rendering. Better separate static textures and material textures
+#if (NRIF_PLATFORM == NRIF_COCOA)
+        constexpr bool overrideFormat = false;
+#else
+        constexpr bool overrideFormat = true;
 #endif
+
+        // StaticTexture::ScramblingRanking (all)
+        for( uint32_t i = 2; i <= 8; i++)
+        {
+            char s[256];
+            snprintf(s, sizeof(s), "scrambling_ranking_128x128_2d_%uspp.png", 1 << i);
+
+            Texture* texture = new Texture;
+            const std::string& texPath = GetFullPath(s, DataFolder::TEXTURES);
+            NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
+            if (overrideFormat)
+                texture->OverrideFormat(nri::Format::RGBA8_UINT);
             scene.textures.push_back(texture);
         }
 
-        // StaticTexture::SobolSequence
-        {
+        { // StaticTexture::SobolSequence
             Texture* texture = new Texture;
             const std::string& texPath = GetFullPath("sobol_256_4d.png", DataFolder::TEXTURES);
             NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
-#if (NRIF_PLATFORM != NRIF_COCOA)
-            texture->OverrideFormat(nri::Format::RGBA8_UINT);
-#endif
+            if (overrideFormat)
+                texture->OverrideFormat(nri::Format::RGBA8_UINT);
             scene.textures.push_back(texture);
         }
     }

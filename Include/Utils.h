@@ -20,7 +20,13 @@ enum StaticTexture : uint32_t {
     White,
     Invalid,
     FlatNormal,
-    ScramblingRanking,
+    ScramblingRanking4,
+    ScramblingRanking8,
+    ScramblingRanking16,
+    ScramblingRanking32,
+    ScramblingRanking64,
+    ScramblingRanking128,
+    ScramblingRanking256,
     SobolSequence
 };
 
