@@ -722,9 +722,13 @@ typedef unsigned char validate_uint32[sizeof(stbi__uint32)==4 ? 1 : -1];
 #endif
 
 #if !defined(STBI_NO_SIMD) && (defined(STBI__X86_TARGET) || defined(STBI__X64_TARGET))
-
 #define STBI_SSE2
-#include <intrin.h> // __cpuid
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#else
+#include <emmintrin.h>
+#endif
 
 #ifdef _MSC_VER
 
