@@ -951,6 +951,8 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
                                 custom = attr.data;
                             }
                             break;
+                        default:
+                            break;
                     }
                 }
 
