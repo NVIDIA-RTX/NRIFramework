@@ -104,7 +104,7 @@ fetchcontent_declare(
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
     SOURCE_SUBDIR "ignore CMakeLists.txt"
-    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.6.zip
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.8.zip
 )
 list(APPEND DEPS imgui)
 
@@ -119,7 +119,7 @@ fetchcontent_declare(
     glfw
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
-    URL https://github.com/glfw/glfw/archive/fdd14e65b1c29e4e6df875fb5669ec00d6793531.zip
+    URL https://github.com/glfw/glfw/archive/b00e6a8a88ad1b60c0a045e696301deb92c9a13e.zip
 )
 list(APPEND DEPS glfw)
 
@@ -141,7 +141,7 @@ if(NOT TARGET ShaderMake) # NRI could add it already
         shadermake
         DOWNLOAD_EXTRACT_TIMESTAMP 1
         DOWNLOAD_NO_PROGRESS 1
-        URL https://github.com/NVIDIA-RTX/ShaderMake/archive/18f5a344e7ca8fa65daaf079d07bc8ce38453e05.zip
+        URL https://github.com/NVIDIA-RTX/ShaderMake/archive/5daebdbef45088fc2369d441391ecab0eba25e54.zip
     )
     list(APPEND DEPS shadermake)
 endif()
