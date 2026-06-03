@@ -24,13 +24,10 @@ inline DebugAllocatorHeader* GetAllocationHeader(void* memory) {
 static void* DebugAlignedMalloc(void* userArg, size_t size, size_t alignment) {
     assert(alignment != 0);
 
-    DebugAllocator* allocator = (DebugAllocator*)userArg;
-
-    const size_t alignedHeaderSize = helper::Align(sizeof(DebugAllocatorHeader), alignment);
-    const size_t allocationSize = size + alignment - 1 + alignedHeaderSize;
+    size_t alignedHeaderSize = helper::Align(sizeof(DebugAllocatorHeader), alignment);
+    size_t allocationSize = size + alignment - 1 + alignedHeaderSize;
 
     uint8_t* memory = (uint8_t*)malloc(allocationSize);
-
     if (memory == nullptr)
         return nullptr;
 
@@ -42,6 +39,7 @@ static void* DebugAlignedMalloc(void* userArg, size_t size, size_t alignment) {
     header->alignment = (uint32_t)alignment;
     header->offset = (uint32_t)(alignedMemory - memory);
 
+    DebugAllocator* allocator = (DebugAllocator*)userArg;
     allocator->allocatedSize.fetch_add(allocationSize, std::memory_order_relaxed);
     allocator->allocationNum.fetch_add(1, std::memory_order_relaxed);
 
@@ -51,9 +49,7 @@ static void* DebugAlignedMalloc(void* userArg, size_t size, size_t alignment) {
 static void* DebugAlignedRealloc(void* userArg, void* memory, size_t size, size_t alignment) {
     assert(alignment != 0);
 
-    DebugAllocator* allocator = (DebugAllocator*)userArg;
-
-    if (memory == nullptr)
+    if (!memory)
         return DebugAlignedMalloc(userArg, size, alignment);
 
     const DebugAllocatorHeader prevHeader = *GetAllocationHeader(memory);
@@ -65,12 +61,12 @@ static void* DebugAlignedRealloc(void* userArg, void* memory, size_t size, size_
     uint8_t* prevMemoryBegin = (uint8_t*)memory - prevHeader.offset;
 
     uint8_t* newMemory = (uint8_t*)realloc(prevMemoryBegin, allocationSize);
-
-    if (newMemory == nullptr)
+    if (!newMemory)
         return nullptr;
 
     uint8_t* alignedMemory = helper::Align(newMemory, alignment) + alignedHeaderSize;
 
+    DebugAllocator* allocator = (DebugAllocator*)userArg;
     allocator->allocatedSize.fetch_add(allocationSize - prevHeader.size, std::memory_order_relaxed);
 
     DebugAllocatorHeader* newHeader = GetAllocationHeader(alignedMemory);
@@ -83,14 +79,14 @@ static void* DebugAlignedRealloc(void* userArg, void* memory, size_t size, size_
 }
 
 static void DebugAlignedFree(void* userArg, void* memory) {
-    if (memory == nullptr)
+    if (!memory)
         return;
 
     const DebugAllocatorHeader* header = GetAllocationHeader(memory);
 
     DebugAllocator* allocator = (DebugAllocator*)userArg;
-    const size_t allocatedSize = allocator->allocatedSize.fetch_sub(header->size, std::memory_order_relaxed);
-    const size_t allocationNum = allocator->allocationNum.fetch_sub(1, std::memory_order_relaxed);
+    [[maybe_unused]] size_t allocatedSize = allocator->allocatedSize.fetch_sub(header->size, std::memory_order_relaxed);
+    [[maybe_unused]] size_t allocationNum = allocator->allocationNum.fetch_sub(1, std::memory_order_relaxed);
 
     assert(allocatedSize >= header->size);
     assert(allocationNum != 0);
