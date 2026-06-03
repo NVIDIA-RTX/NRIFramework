@@ -17,23 +17,14 @@ struct DebugAllocatorHeader {
     uint32_t offset;
 };
 
-inline void ReportAllocatorError(const char* message) {
-#if _WIN32
-    OutputDebugStringA(message);
-#endif
-    std::cout << message;
-    std::abort();
-}
-
 inline DebugAllocatorHeader* GetAllocationHeader(void* memory) {
     return (DebugAllocatorHeader*)memory - 1;
 }
 
 static void* DebugAlignedMalloc(void* userArg, size_t size, size_t alignment) {
-    DebugAllocator* allocator = (DebugAllocator*)userArg;
+    assert(alignment != 0);
 
-    if (alignment == 0)
-        ReportAllocatorError("DebugAlignedMalloc() failed: alignment can't be 0.\n");
+    DebugAllocator* allocator = (DebugAllocator*)userArg;
 
     const size_t alignedHeaderSize = helper::Align(sizeof(DebugAllocatorHeader), alignment);
     const size_t allocationSize = size + alignment - 1 + alignedHeaderSize;
@@ -58,18 +49,15 @@ static void* DebugAlignedMalloc(void* userArg, size_t size, size_t alignment) {
 }
 
 static void* DebugAlignedRealloc(void* userArg, void* memory, size_t size, size_t alignment) {
-    DebugAllocator* allocator = (DebugAllocator*)userArg;
+    assert(alignment != 0);
 
-    if (alignment == 0)
-        ReportAllocatorError("DebugAlignedRealloc() failed: alignment can't be 0.\n");
+    DebugAllocator* allocator = (DebugAllocator*)userArg;
 
     if (memory == nullptr)
         return DebugAlignedMalloc(userArg, size, alignment);
 
     const DebugAllocatorHeader prevHeader = *GetAllocationHeader(memory);
-
-    if (prevHeader.alignment != alignment)
-        ReportAllocatorError("DebugAlignedRealloc() failed: memory alignment mismatch.\n");
+    assert(prevHeader.alignment == alignment);
 
     const size_t alignedHeaderSize = helper::Align(sizeof(DebugAllocatorHeader), alignment);
     const size_t allocationSize = size + alignment - 1 + alignedHeaderSize;
@@ -104,10 +92,8 @@ static void DebugAlignedFree(void* userArg, void* memory) {
     const size_t allocatedSize = allocator->allocatedSize.fetch_sub(header->size, std::memory_order_relaxed);
     const size_t allocationNum = allocator->allocationNum.fetch_sub(1, std::memory_order_relaxed);
 
-    if (allocatedSize < header->size)
-        ReportAllocatorError("DebugAlignedFree() failed: invalid allocated size.\n");
-    if (allocationNum == 0)
-        ReportAllocatorError("DebugAlignedFree() failed: invalid allocation number.\n");
+    assert(allocatedSize >= header->size);
+    assert(allocationNum != 0);
 
     free((uint8_t*)memory - header->offset);
 }
@@ -123,10 +109,10 @@ void CreateDebugAllocator(nri::AllocationCallbacks& allocationCallbacks) {
 void DestroyDebugAllocator(nri::AllocationCallbacks& allocationCallbacks) {
     DebugAllocator* debugAllocator = (DebugAllocator*)allocationCallbacks.userArg;
 
-    if (debugAllocator->allocatedSize.load(std::memory_order_relaxed) != 0)
-        ReportAllocatorError("DestroyDebugAllocator() failed: allocatedSize is not 0.\n");
-    if (debugAllocator->allocationNum.load(std::memory_order_relaxed) != 0)
-        ReportAllocatorError("DestroyDebugAllocator() failed: allocationNum is not 0.\n");
+    size_t size = debugAllocator->allocatedSize.load(std::memory_order_relaxed);
+    size_t num = debugAllocator->allocationNum.load(std::memory_order_relaxed);
+    if (size || num)
+        printf("DestroyDebugAllocator(): %i bytes left in %i allocations!\n", (int32_t)size, (int32_t)num);
 
     delete debugAllocator;
 }
