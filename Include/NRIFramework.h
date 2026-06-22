@@ -3,8 +3,8 @@
 #pragma once
 
 #define NRI_FRAMEWORK_VERSION_MAJOR 0
-#define NRI_FRAMEWORK_VERSION_MINOR 24
-#define NRI_FRAMEWORK_VERSION_DATE  "31 October 2025"
+#define NRI_FRAMEWORK_VERSION_MINOR 25
+#define NRI_FRAMEWORK_VERSION_DATE  "22 June 2026"
 #define NRI_FRAMEWORK               1
 
 // Platform detection
