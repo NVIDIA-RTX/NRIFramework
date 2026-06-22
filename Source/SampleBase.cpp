@@ -544,6 +544,8 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
         graphicsAPI = nri::GraphicsAPI::D3D12;
     } else if (selectedApi == "VULKAN") {
         graphicsAPI = nri::GraphicsAPI::VK;
+    } else if (selectedApi == "WGPU") {
+        graphicsAPI = nri::GraphicsAPI::WGPU;
     }
 
     char windowName[256];
@@ -698,7 +700,7 @@ void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
 #endif
 
     cmdLine.add("help", '?', "print this message");
-    cmdLine.add<std::string>("api", 'a', "graphics API: D3D11, D3D12 or VULKAN", false, graphicsAPI, cmdline::oneof<std::string>("D3D11", "D3D12", "VULKAN"));
+    cmdLine.add<std::string>("api", 'a', "graphics API: D3D11, D3D12, VULKAN or WGPU", false, graphicsAPI, cmdline::oneof<std::string>("D3D11", "D3D12", "VULKAN", "WGPU"));
     cmdLine.add<std::string>("scene", 's', "scene", false, m_SceneFile);
     cmdLine.add<uint32_t>("width", 'w', "output resolution width", false, m_OutputResolution.x);
     cmdLine.add<uint32_t>("height", 'h', "output resolution height", false, m_OutputResolution.y);
