@@ -17,12 +17,14 @@ struct Shader {
     nri::StageBits stage;
 };
 
-constexpr std::array<Shader, 13> gShaderExts = {{
+constexpr std::array<Shader, 15> gShaderExts = {{
     {"", nri::StageBits::NONE},
     {".vs.", nri::StageBits::VERTEX_SHADER},
     {".tcs.", nri::StageBits::TESS_CONTROL_SHADER},
     {".tes.", nri::StageBits::TESS_EVALUATION_SHADER},
     {".gs.", nri::StageBits::GEOMETRY_SHADER},
+    {".as.", nri::StageBits::TASK_SHADER},
+    {".ms.", nri::StageBits::MESH_SHADER},
     {".fs.", nri::StageBits::FRAGMENT_SHADER},
     {".cs.", nri::StageBits::COMPUTE_SHADER},
     {".rgen.", nri::StageBits::RAYGEN_SHADER},

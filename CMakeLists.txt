@@ -104,7 +104,7 @@ fetchcontent_declare(
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
     SOURCE_SUBDIR "ignore CMakeLists.txt"
-    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.8.zip
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.9b.zip
 )
 list(APPEND DEPS imgui)
 
@@ -119,7 +119,7 @@ fetchcontent_declare(
     glfw
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
-    URL https://github.com/glfw/glfw/archive/b00e6a8a88ad1b60c0a045e696301deb92c9a13e.zip
+    URL https://github.com/glfw/glfw/archive/refs/tags/3.5.1.zip
 )
 list(APPEND DEPS glfw)
 
