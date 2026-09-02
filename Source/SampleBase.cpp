@@ -455,9 +455,11 @@ void SampleBase::DestroyImgui() {
     m_ImguiRenderer = nullptr;
 }
 
-void SampleBase::CmdCopyImguiData(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer) {
+nri::ImguiRenderData SampleBase::CmdCopyImguiData(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer) {
+    nri::ImguiRenderData imguiRenderData = {};
+
     if (!HasUserInterface())
-        return;
+        return imguiRenderData;
 
     const ImDrawData& drawData = *ImGui::GetDrawData();
 
@@ -467,24 +469,24 @@ void SampleBase::CmdCopyImguiData(nri::CommandBuffer& commandBuffer, nri::Stream
     copyImguiDataDesc.textures = drawData.Textures->Data;
     copyImguiDataDesc.textureNum = drawData.Textures->Size;
 
-    m_iImgui.CmdCopyImguiData(commandBuffer, streamer, *m_ImguiRenderer, copyImguiDataDesc);
+    m_iImgui.CmdCopyImguiData(commandBuffer, streamer, *m_ImguiRenderer, copyImguiDataDesc, imguiRenderData);
+
+    return imguiRenderData;
 }
 
-void SampleBase::CmdDrawImgui(nri::CommandBuffer& commandBuffer, nri::Format attachmentFormat, float sdrScale, bool isSrgb) {
+void SampleBase::CmdDrawImgui(nri::CommandBuffer& commandBuffer, const nri::ImguiRenderData& imguiRenderData, nri::Format attachmentFormat, float sdrScale, bool isSrgb) {
     if (!HasUserInterface())
         return;
 
     const ImDrawData& drawData = *ImGui::GetDrawData();
 
     nri::DrawImguiDesc drawImguiDesc = {};
-    drawImguiDesc.drawLists = drawData.CmdLists.Data;
-    drawImguiDesc.drawListNum = drawData.CmdLists.Size;
     drawImguiDesc.displaySize = {(nri::Dim_t)drawData.DisplaySize.x, (nri::Dim_t)drawData.DisplaySize.y};
     drawImguiDesc.hdrScale = sdrScale;
     drawImguiDesc.attachmentFormat = attachmentFormat;
     drawImguiDesc.linearColor = !isSrgb;
 
-    m_iImgui.CmdDrawImgui(commandBuffer, *m_ImguiRenderer, drawImguiDesc);
+    m_iImgui.CmdDrawImgui(commandBuffer, imguiRenderData, drawImguiDesc);
 }
 
 bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {

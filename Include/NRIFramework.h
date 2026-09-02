@@ -3,8 +3,8 @@
 #pragma once
 
 #define NRI_FRAMEWORK_VERSION_MAJOR 0
-#define NRI_FRAMEWORK_VERSION_MINOR 26
-#define NRI_FRAMEWORK_VERSION_DATE  "28 August 2026"
+#define NRI_FRAMEWORK_VERSION_MINOR 27
+#define NRI_FRAMEWORK_VERSION_DATE  "2 September 2026"
 #define NRI_FRAMEWORK               1
 
 // Platform detection
@@ -74,6 +74,7 @@
 
 // Settings
 constexpr nri::VKBindingOffsets VK_BINDING_OFFSETS = {0, 128, 32, 64}; // see CMake
+constexpr uint64_t IMGUI_HOST_DATA_CAPACITY = 1024 * 1024;
 constexpr bool D3D11_ENABLE_COMMAND_BUFFER_EMULATION = false;
 constexpr bool D3D12_DISABLE_ENHANCED_BARRIERS = false;
 
@@ -157,8 +158,8 @@ public:
     virtual void RenderFrame(uint32_t frameIndex) = 0;
 
     // UI
-    void CmdCopyImguiData(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer);
-    void CmdDrawImgui(nri::CommandBuffer& commandBuffer, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
+    nri::ImguiRenderData CmdCopyImguiData(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer);
+    void CmdDrawImgui(nri::CommandBuffer& commandBuffer, const nri::ImguiRenderData& imguiRenderData, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
 
     // Destroy
     virtual ~SampleBase();
