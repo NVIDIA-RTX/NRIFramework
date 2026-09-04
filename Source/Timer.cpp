@@ -48,9 +48,11 @@ void Timer::UpdateFrameTime() {
 
         float relativeDelta = fabsf(m_Delta - m_SmoothedDelta) / (MY_MIN(m_Delta, m_SmoothedDelta) + 1e-7f);
         float f = relativeDelta / (1.0f + relativeDelta);
-
         m_SmoothedDelta = m_SmoothedDelta + (m_Delta - m_SmoothedDelta) * MY_MAX(f, 1.0f / 32.0f);
-        m_VerySmoothedDelta = m_VerySmoothedDelta + (m_Delta - m_VerySmoothedDelta) * MY_MAX(f, 1.0f / 64.0f);
+
+        float smoothedFPS = 1000.0f / m_VerySmoothedDelta;
+        float n = smoothedFPS * 0.2f;
+        m_VerySmoothedDelta = m_VerySmoothedDelta + (m_Delta - m_VerySmoothedDelta) / (1.0f + n);
     }
 
     m_Time = _GetTicks();
