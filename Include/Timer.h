@@ -15,14 +15,17 @@ public:
         return m_Time * m_InvTicksPerMs;
     }
 
+    // Unbiased
     inline float GetFrameTime() const {
         return m_Delta;
     }
 
+    // Smoothed but reactive to spikes
     inline float GetSmoothedFrameTime() const {
         return m_SmoothedDelta;
     }
 
+    // Smoothed with suppressed spikes
     inline float GetVerySmoothedFrameTime() const {
         return m_VerySmoothedDelta;
     }
