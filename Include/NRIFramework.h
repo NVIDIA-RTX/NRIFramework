@@ -49,6 +49,7 @@
 // NRI: core & extensions
 #include "NRI.h"
 
+#include "Extensions/NRIDescriptorHeap.h"
 #include "Extensions/NRIDeviceCreation.h"
 #include "Extensions/NRIHelper.h"
 #include "Extensions/NRIImgui.h"
@@ -81,6 +82,7 @@ constexpr bool D3D12_DISABLE_ENHANCED_BARRIERS = false;
 // Include everything for demo purposes
 struct NRIInterface
     : public nri::CoreInterface,
+      public nri::DescriptorHeapInterface,
       public nri::HelperInterface,
       public nri::LowLatencyInterface,
       public nri::MeshShaderInterface,
@@ -94,6 +96,10 @@ struct NRIInterface
 
     inline bool HasHelper() const {
         return CalculateAllocationNumber != nullptr;
+    }
+
+    inline bool HasDescriptorHeap() const {
+        return CreateDescriptorHeap != nullptr;
     }
 
     inline bool HasLowLatency() const {
