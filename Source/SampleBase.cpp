@@ -558,6 +558,8 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
         graphicsAPI = nri::GraphicsAPI::D3D12;
     } else if (selectedApi == "VULKAN") {
         graphicsAPI = nri::GraphicsAPI::VK;
+    } else if (selectedApi == "METAL") {
+        graphicsAPI = nri::GraphicsAPI::METAL;
     } else if (selectedApi == "WGPU") {
         graphicsAPI = nri::GraphicsAPI::WGPU;
     }
@@ -715,12 +717,14 @@ void SampleBase::CursorMode(int32_t mode) {
 void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
 #if (NRIF_PLATFORM == NRIF_WINDOWS)
     std::string graphicsAPI = "D3D12";
+#elif (NRIF_PLATFORM == NRIF_COCOA && NRI_ENABLE_METAL_SHADER_CONVERTER) // samples use HLSL
+    std::string graphicsAPI = "METAL";
 #else
     std::string graphicsAPI = "VULKAN";
 #endif
 
     cmdLine.add("help", '?', "print this message");
-    cmdLine.add<std::string>("api", 'a', "graphics API: D3D11, D3D12, VULKAN or WGPU", false, graphicsAPI, cmdline::oneof<std::string>("D3D11", "D3D12", "VULKAN", "WGPU"));
+    cmdLine.add<std::string>("api", 'a', "graphics API: D3D11, D3D12, VULKAN, METAL or WGPU", false, graphicsAPI, cmdline::oneof<std::string>("D3D11", "D3D12", "VULKAN", "METAL", "WGPU"));
     cmdLine.add<std::string>("scene", 's', "scene", false, m_SceneFile);
     cmdLine.add<uint32_t>("width", 'w', "output resolution width", false, m_OutputResolution.x);
     cmdLine.add<uint32_t>("height", 'h', "output resolution height", false, m_OutputResolution.y);

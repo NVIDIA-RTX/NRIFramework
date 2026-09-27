@@ -274,6 +274,8 @@ endif()
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
         ${COMPILE_DEFINITIONS}
+    PUBLIC
+        NRI_ENABLE_METAL_SHADER_CONVERTER=$<BOOL:${NRI_ENABLE_METAL_SHADER_CONVERTER}>
 )
 target_compile_options(${PROJECT_NAME}
     PRIVATE

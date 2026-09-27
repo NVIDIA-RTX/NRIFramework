@@ -221,6 +221,8 @@ inline const char* GetShaderExt(nri::GraphicsAPI graphicsAPI) {
         return ".dxbc";
     else if (graphicsAPI == nri::GraphicsAPI::D3D12)
         return ".dxil";
+    else if (graphicsAPI == nri::GraphicsAPI::METAL)
+        return NRI_ENABLE_METAL_SHADER_CONVERTER ? ".dxil" : ".metallib";
 
     return ".spirv";
 }
