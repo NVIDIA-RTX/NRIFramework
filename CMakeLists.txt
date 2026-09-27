@@ -114,7 +114,6 @@ if(APPLE)
         PRIVATE
             ${QUARTZ_CORE}
             ${COCOA_LIBRARY}
-            glfw
     )
 endif()
 
