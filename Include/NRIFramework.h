@@ -3,8 +3,8 @@
 #pragma once
 
 #define NRI_FRAMEWORK_VERSION_MAJOR 0
-#define NRI_FRAMEWORK_VERSION_MINOR 24
-#define NRI_FRAMEWORK_VERSION_DATE  "31 October 2025"
+#define NRI_FRAMEWORK_VERSION_MINOR 27
+#define NRI_FRAMEWORK_VERSION_DATE  "2 September 2026"
 #define NRI_FRAMEWORK               1
 
 // Platform detection
@@ -49,6 +49,7 @@
 // NRI: core & extensions
 #include "NRI.h"
 
+#include "Extensions/NRIDescriptorHeap.h"
 #include "Extensions/NRIDeviceCreation.h"
 #include "Extensions/NRIHelper.h"
 #include "Extensions/NRIImgui.h"
@@ -74,12 +75,14 @@
 
 // Settings
 constexpr nri::VKBindingOffsets VK_BINDING_OFFSETS = {0, 128, 32, 64}; // see CMake
+constexpr uint64_t IMGUI_HOST_DATA_CAPACITY = 1024 * 1024;
 constexpr bool D3D11_ENABLE_COMMAND_BUFFER_EMULATION = false;
 constexpr bool D3D12_DISABLE_ENHANCED_BARRIERS = false;
 
 // Include everything for demo purposes
 struct NRIInterface
     : public nri::CoreInterface,
+      public nri::DescriptorHeapInterface,
       public nri::HelperInterface,
       public nri::LowLatencyInterface,
       public nri::MeshShaderInterface,
@@ -93,6 +96,10 @@ struct NRIInterface
 
     inline bool HasHelper() const {
         return CalculateAllocationNumber != nullptr;
+    }
+
+    inline bool HasDescriptorHeap() const {
+        return CreateDescriptorHeap != nullptr;
     }
 
     inline bool HasLowLatency() const {
@@ -157,8 +164,8 @@ public:
     virtual void RenderFrame(uint32_t frameIndex) = 0;
 
     // UI
-    void CmdCopyImguiData(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer);
-    void CmdDrawImgui(nri::CommandBuffer& commandBuffer, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
+    nri::ImguiRenderData CmdCopyImguiData(nri::CommandBuffer& commandBuffer, nri::Streamer& streamer);
+    void CmdDrawImgui(nri::CommandBuffer& commandBuffer, const nri::ImguiRenderData& imguiRenderData, nri::Format attachmentFormat, float sdrScale, bool isSrgb);
 
     // Destroy
     virtual ~SampleBase();
