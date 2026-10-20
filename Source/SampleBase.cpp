@@ -306,7 +306,8 @@ static void GLFW_CursorPosCallback(GLFWwindow* window, double x, double y) {
         ImGuiIO& io = ImGui::GetIO();
         int windowWidth, windowHeight;
         glfwGetWindowSize(window, &windowWidth, &windowHeight);
-        io.AddMousePosEvent(cursorPos.x * io.DisplaySize.x / max(windowWidth, 1), cursorPos.y * io.DisplaySize.y / max(windowHeight, 1));
+        const uint2 outputResolution = p->GetOutputResolution();
+        io.AddMousePosEvent(cursorPos.x * outputResolution.x / max(windowWidth, 1), cursorPos.y * outputResolution.y / max(windowHeight, 1));
     }
 }
 
