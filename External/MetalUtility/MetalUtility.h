@@ -1,10 +1,8 @@
-typedef struct GLFWwindow GLFWwindow;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void* GetMetalLayer(GLFWwindow* window);
+void* GetMetalLayer(void* nsWindow); // "NSWindow*" (from "glfwGetCocoaWindow"), returns "CAMetalLayer*"
 
 #ifdef __cplusplus
 }
