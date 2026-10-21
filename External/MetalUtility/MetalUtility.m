@@ -1,25 +1,24 @@
 #include "MetalUtility.h"
 
-#define GLFW_EXPOSE_NATIVE_COCOA
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
-
+#import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAMetalLayer.h>
 
-// Vulkan swap-chain creation requires the metal layer that was created
-void* GetMetalLayer(GLFWwindow* window)
+// Vulkan and Metal swap-chain creation requires the metal layer. GLFW isn't used here: a shared library would have its own
+// static GLFW copy, which isn't initialized
+void* GetMetalLayer(void* window)
 {
-    if (!window)
-        return NULL;
-
-    NSWindow* nsWindow = glfwGetCocoaWindow(window);
+    NSWindow* nsWindow = (__bridge NSWindow*)window;
     if (!nsWindow)
         return NULL;
 
     NSView* contentView = [nsWindow contentView];
     if (![contentView.layer isKindOfClass:[CAMetalLayer class]])
     {
-        [contentView setLayer:[CAMetalLayer layer]];
+        CAMetalLayer* layer = [CAMetalLayer layer];
+        layer.contentsScale = nsWindow.backingScaleFactor;
+        layer.frame = contentView.bounds;
+        layer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
+        [contentView setLayer:layer];
         [contentView setWantsLayer:YES];
     }
 
