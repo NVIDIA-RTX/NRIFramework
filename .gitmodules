@@ -6,5 +6,5 @@
 [submodule "External/NRI"]
 	path = External/NRI
 	url = https://github.com/NVIDIA-RTX/NRI.git
-	branch = video-queues
+	branch = main
 	update = merge
