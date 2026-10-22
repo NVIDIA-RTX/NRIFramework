@@ -7,6 +7,11 @@
 #define NRI_FRAMEWORK_VERSION_DATE  "20 October 2026"
 #define NRI_FRAMEWORK               1
 
+// Sample process exit codes: must stay in sync with the test scripts
+#define NRIF_OK   0
+#define NRIF_FAIL 1
+#define NRIF_SKIP 2
+
 // Platform detection
 #define NRIF_WINDOWS 0
 #define NRIF_X11     1
@@ -32,6 +37,8 @@
 #else
 #    error "Unknown platform"
 #endif
+
+#ifdef __cplusplus
 
 #include <array>
 #include <cinttypes>
@@ -278,12 +285,12 @@ private:
 
 #define NRI_ABORT_ON_FAILURE(result) \
     if ((result) != nri::Result::SUCCESS) { \
-        exit(1); \
+        exit(NRIF_FAIL); \
     }
 
 #define NRI_ABORT_ON_FALSE(result) \
     if (!(result)) { \
-        exit(1); \
+        exit(NRIF_FAIL); \
     }
 
 #define SAMPLE_MAIN(className, memoryAllocationIndexForBreak) \
@@ -299,5 +306,7 @@ private:
         bool result = g_sample->Create(argc, argv, STRINGIFY(PROJECT_NAME)); \
         if (result) \
             g_sample->RenderLoop(); \
-        return result ? 0 : 1; \
+        return result ? NRIF_OK : NRIF_FAIL; \
     }
+
+#endif // __cplusplus
