@@ -400,6 +400,11 @@ bool utils::LoadFile(const std::string& path, std::vector<uint8_t>& data) {
 nri::ShaderDesc utils::LoadShader(nri::GraphicsAPI graphicsAPI, const std::string& shaderName, ShaderCodeStorage& storage, const char* entryPointName) {
     const char* ext = GetShaderExt(graphicsAPI);
     std::string path = GetFullPath(shaderName + ext, DataFolder::SHADERS);
+    if (graphicsAPI == nri::GraphicsAPI::METAL && !NRI_ENABLE_METAL_SHADER_CONVERTER && !std::filesystem::exists(path)) {
+        printf("Metal shaders require NRI_ENABLE_METAL_SHADER_CONVERTER or precompiled .metallib files!\n");
+        exit(NRIF_SKIP);
+    }
+
     nri::ShaderDesc shaderDesc = {};
 
     size_t i = 1;
