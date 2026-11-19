@@ -1561,7 +1561,7 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
                     assert(activeImage->buffer_view->size < std::numeric_limits<int>::max());
 
                     const uint8_t* data = ((const uint8_t*)activeImage->buffer_view->buffer->data) + activeImage->buffer_view->offset;
-                    isLoaded = LoadTextureFromMemory(std::string(activeImage->name), data,
+                    isLoaded = LoadTextureFromMemory(activeImage->name ? activeImage->name : "", data,
                         (int)activeImage->buffer_view->size, *tex, computeAlphaMode);
                 } else {
                     std::string filename = (normPath.parent_path() / activeImage->uri).string();
@@ -1601,12 +1601,13 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
         material.alphaMode = useTransmission ? AlphaMode::TRANSPARENT : diffuseTexture->alphaMode;
 
         // TODO: hacks
-        material.isHair = strstr(gltfMaterial.name, "_hair") != 0 || strstr(gltfMaterial.name, "OmniHairBase") != 0;
-        material.isLeaf = strstr(gltfMaterial.name, "Foliage") != 0;
-        material.isSkin = strstr(gltfMaterial.name, "_skin") != 0;
+        const char* materialName = gltfMaterial.name ? gltfMaterial.name : ""; // the name is optional in glTF
+        material.isHair = strstr(materialName, "_hair") != 0 || strstr(materialName, "OmniHairBase") != 0;
+        material.isLeaf = strstr(materialName, "Foliage") != 0;
+        material.isSkin = strstr(materialName, "_skin") != 0;
 
         // TODO: remove strange polygon on the window in Kitchen scene
-        if (strstr(gltfMaterial.name, "Material_295"))
+        if (strstr(materialName, "Material_295"))
             material.alphaMode = AlphaMode::OFF;
 
         /*
