@@ -1476,7 +1476,7 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
 
         // TODO: Metal complains that "RGBA8_UINT" can't be cast to "float" despite the fact that all static textures are
         // never accessed as material textures for objects rendering. Better separate static textures and material textures
-#if (NRIF_PLATFORM == NRIF_COCOA)
+#if (NRIF_PLATFORM == NRIF_COCOA || NRIF_PLATFORM == NRIF_UIKIT)
         constexpr bool overrideFormat = false;
 #else
         constexpr bool overrideFormat = true;

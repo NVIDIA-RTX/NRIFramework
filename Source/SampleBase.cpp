@@ -14,14 +14,31 @@
 #    include "MetalUtility/MetalUtility.h"
 #endif
 
-#include "GLFW/glfw3native.h"
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+#    include <chrono>
+#else
+#    include "GLFW/glfw3native.h"
+#endif
 
 template <typename T>
 constexpr void MaybeUnused([[maybe_unused]] const T& arg) {
 }
 
+static double GetTimeSeconds() {
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+    using Clock = std::chrono::steady_clock;
+    static const Clock::time_point start = Clock::now();
+
+    return std::chrono::duration<double>(Clock::now() - start).count();
+#else
+    return glfwGetTime();
+#endif
+}
+
 void CreateDebugAllocator(nri::AllocationCallbacks& allocationCallbacks);
 void DestroyDebugAllocator(nri::AllocationCallbacks& allocationCallbacks);
+
+#if (NRIF_PLATFORM != NRIF_UIKIT)
 
 //==================================================================================================================================================
 // GLFW CALLBACKS
@@ -322,6 +339,8 @@ static void GLFW_ScrollCallback(GLFWwindow* window, double xoffset, double yoffs
     }
 }
 
+#endif // GLFW callbacks
+
 //==================================================================================================================================================
 // SAMPLE BASE
 //==================================================================================================================================================
@@ -333,7 +352,9 @@ SampleBase::SampleBase() {
 }
 
 SampleBase::~SampleBase() {
+#if (NRIF_PLATFORM != NRIF_UIKIT)
     glfwTerminate();
+#endif
 
 #if _DEBUG
     if (m_AllocationCallbacks.userArg != nullptr)
@@ -399,8 +420,12 @@ bool SampleBase::InitImgui(nri::Device& device) {
     ImGui::StyleColorsDark();
 
     float contentScale = 1.0f;
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+    contentScale = m_ContentScale;
+#else
     float unused = 0.0f;
     glfwGetWindowContentScale(m_Window, &contentScale, &unused);
+#endif
 
     printf("DPI scale %.1f%%\n", contentScale * 100.0f);
 
@@ -415,6 +440,7 @@ bool SampleBase::InitImgui(nri::Device& device) {
     io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
     io.IniFilename = nullptr;
 
+#if (NRIF_PLATFORM != NRIF_UIKIT)
     m_MouseCursors[ImGuiMouseCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
     m_MouseCursors[ImGuiMouseCursor_TextInput] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
     m_MouseCursors[ImGuiMouseCursor_Hand] = glfwCreateStandardCursor(GLFW_POINTING_HAND_CURSOR);
@@ -426,6 +452,7 @@ bool SampleBase::InitImgui(nri::Device& device) {
     m_MouseCursors[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
     m_MouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
 #endif
+#endif // UIKit has no cursors
 
     // Font
     ImFontConfig fontConfig = {};
@@ -512,6 +539,7 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     ReadCmdLineDefault(cmdLine);
     ReadCmdLine(cmdLine);
 
+#if (NRIF_PLATFORM != NRIF_UIKIT)
     // Init GLFW
     glfwSetErrorCallback(GLFW_ErrorCallback);
 
@@ -552,6 +580,8 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     glfwWindowHint(GLFW_DECORATED, decorated ? 1 : 0);
     glfwWindowHint(GLFW_RESIZABLE, m_Resizable ? 1 : 0);
 
+#endif
+
     nri::GraphicsAPI graphicsAPI = nri::GraphicsAPI::VK; // Default
     std::string selectedApi = cmdLine.get<std::string>("api");
     if (selectedApi == "D3D11") {
@@ -566,6 +596,7 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
         graphicsAPI = nri::GraphicsAPI::WGPU;
     }
 
+#if (NRIF_PLATFORM != NRIF_UIKIT)
     char windowName[256];
     snprintf(windowName, sizeof(windowName), "%s [%s]", windowTitle, nri::nriGetGraphicsAPIString(graphicsAPI));
 
@@ -599,11 +630,20 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     m_NRIWindow.metal.caMetalLayer = GetMetalLayer(glfwGetCocoaWindow(m_Window));
 #endif
 
+#else
+    MaybeUnused(windowTitle);
+
+    // The platform layer creates the window and provides it via "SetNativeWindow"
+    if (!m_NRIWindow.metal.caMetalLayer)
+        return false;
+#endif
+
     // Main initialization
     printf("Loading...\n");
 
     bool result = Initialize(graphicsAPI, true);
 
+#if (NRIF_PLATFORM != NRIF_UIKIT)
     // Set callbacks and show window
     glfwSetWindowUserPointer(m_Window, this);
     glfwSetKeyCallback(m_Window, GLFW_KeyCallback);
@@ -612,81 +652,105 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     glfwSetCursorPosCallback(m_Window, GLFW_CursorPosCallback);
     glfwSetScrollCallback(m_Window, GLFW_ScrollCallback);
     glfwShowWindow(m_Window);
+#endif
 
     return result;
 }
 
 void SampleBase::RenderLoop() {
-    double activeTime = 0.0;
-    double imguiTimeStampPrev = 0;
+    while (RenderLoopStep())
+        ;
 
-    for (uint32_t i = 0; i < m_FrameNum; i++) {
-        double timeCurr = glfwGetTime();
+    EndRenderLoop();
+}
 
-        LatencySleep(i);
+bool SampleBase::RenderLoopStep() {
+    if (m_FrameIndex >= m_FrameNum)
+        return false;
 
-        // Events
-        glfwPollEvents();
+    const uint32_t i = m_FrameIndex;
+    double timeCurr = GetTimeSeconds();
 
-        if (HasUserInterface()) {
-            ImGuiIO& io = ImGui::GetIO();
-            io.DisplaySize = ImVec2((float)m_OutputResolution.x, (float)m_OutputResolution.y);
-            io.DeltaTime = (float)(glfwGetTime() - imguiTimeStampPrev);
-            imguiTimeStampPrev = glfwGetTime();
+    LatencySleep(i);
 
-            // Update key modifiers
-            io.AddKeyEvent(ImGuiMod_Ctrl, IsKeyPressed(Key::LControl) || IsKeyPressed(Key::RControl));
-            io.AddKeyEvent(ImGuiMod_Shift, IsKeyPressed(Key::LShift) || IsKeyPressed(Key::RShift));
-            io.AddKeyEvent(ImGuiMod_Alt, IsKeyPressed(Key::LAlt) || IsKeyPressed(Key::RAlt));
+    // Events
+#if (NRIF_PLATFORM != NRIF_UIKIT)
+    glfwPollEvents();
+#endif
 
-            // Update mouse cursor
-            if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) == 0 && glfwGetInputMode(m_Window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
-                ImGuiMouseCursor cursor = ImGui::GetMouseCursor();
-                if (cursor == ImGuiMouseCursor_None || io.MouseDrawCursor) {
-                    // Hide OS mouse cursor if Imgui is drawing it or wants no cursor
-                    CursorMode(GLFW_CURSOR_HIDDEN);
-                } else {
-                    // Show OS mouse cursor
-                    glfwSetCursor(m_Window, m_MouseCursors[cursor] ? m_MouseCursors[cursor] : m_MouseCursors[ImGuiMouseCursor_Arrow]);
-                    CursorMode(GLFW_CURSOR_NORMAL);
-                }
+    if (HasUserInterface()) {
+        ImGuiIO& io = ImGui::GetIO();
+        io.DisplaySize = ImVec2((float)m_OutputResolution.x, (float)m_OutputResolution.y);
+        io.DeltaTime = (float)(GetTimeSeconds() - m_ImguiTimeStampPrev);
+        m_ImguiTimeStampPrev = GetTimeSeconds();
+
+        // Update key modifiers
+        io.AddKeyEvent(ImGuiMod_Ctrl, IsKeyPressed(Key::LControl) || IsKeyPressed(Key::RControl));
+        io.AddKeyEvent(ImGuiMod_Shift, IsKeyPressed(Key::LShift) || IsKeyPressed(Key::RShift));
+        io.AddKeyEvent(ImGuiMod_Alt, IsKeyPressed(Key::LAlt) || IsKeyPressed(Key::RAlt));
+
+#if (NRIF_PLATFORM != NRIF_UIKIT)
+        // Update mouse cursor
+        if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) == 0 && glfwGetInputMode(m_Window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
+            ImGuiMouseCursor cursor = ImGui::GetMouseCursor();
+            if (cursor == ImGuiMouseCursor_None || io.MouseDrawCursor) {
+                // Hide OS mouse cursor if Imgui is drawing it or wants no cursor
+                CursorMode(GLFW_CURSOR_HIDDEN);
+            } else {
+                // Show OS mouse cursor
+                glfwSetCursor(m_Window, m_MouseCursors[cursor] ? m_MouseCursors[cursor] : m_MouseCursors[ImGuiMouseCursor_Arrow]);
+                CursorMode(GLFW_CURSOR_NORMAL);
             }
         }
-
-        // Halting
-        bool isActive = glfwGetWindowAttrib(m_Window, GLFW_FOCUSED) != 0 && glfwGetWindowAttrib(m_Window, GLFW_ICONIFIED) == 0;
-        isActive = m_AlwaysActive ? true : isActive;
-        if (!isActive) {
-            i--;
-            continue;
-        }
-
-        // Closing?
-        if (glfwWindowShouldClose(m_Window) || AppShouldClose())
-            break;
-
-        // Frame
-        PrepareFrame(i);
-        RenderFrame(i);
-
-        // Finalize
-        m_MouseWheel = 0.0f;
-        m_MouseDelta = float2(0.0f);
-
-        m_Timer.UpdateFrameTime();
-
-        activeTime += glfwGetTime() - timeCurr;
-        if (i > 8) {
-            if (activeTime > m_TimeLimit)
-                break;
-
-            if (m_HalfTimeLimitReached == 1)
-                m_HalfTimeLimitReached = 0;
-            if (m_HalfTimeLimitReached == 2 && activeTime > m_TimeLimit * 0.5)
-                m_HalfTimeLimitReached = 1;
-        }
+#endif
     }
 
+    // Halting
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+    const bool isActive = true; // the display link stops when the app is in the background
+#else
+    bool isActive = glfwGetWindowAttrib(m_Window, GLFW_FOCUSED) != 0 && glfwGetWindowAttrib(m_Window, GLFW_ICONIFIED) == 0;
+    isActive = m_AlwaysActive ? true : isActive;
+#endif
+    if (!isActive)
+        return true; // same frame, try again
+
+    // Closing?
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+    if (AppShouldClose())
+        return false;
+#else
+    if (glfwWindowShouldClose(m_Window) || AppShouldClose())
+        return false;
+#endif
+
+    // Frame
+    PrepareFrame(i);
+    RenderFrame(i);
+
+    // Finalize
+    m_MouseWheel = 0.0f;
+    m_MouseDelta = float2(0.0f);
+
+    m_Timer.UpdateFrameTime();
+
+    m_ActiveTime += GetTimeSeconds() - timeCurr;
+    if (i > 8) {
+        if (m_ActiveTime > m_TimeLimit)
+            return false;
+
+        if (m_HalfTimeLimitReached == 1)
+            m_HalfTimeLimitReached = 0;
+        if (m_HalfTimeLimitReached == 2 && m_ActiveTime > m_TimeLimit * 0.5)
+            m_HalfTimeLimitReached = 1;
+    }
+
+    m_FrameIndex++;
+
+    return true;
+}
+
+void SampleBase::EndRenderLoop() {
     printf(
         "FPS:\n"
         "  Last frame : %.2f fps (%.3f ms)\n"
@@ -699,6 +763,9 @@ void SampleBase::RenderLoop() {
 }
 
 void SampleBase::CursorMode(int32_t mode) {
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+    MaybeUnused(mode); // no cursor on touch devices
+#else
     if (mode == GLFW_CURSOR_NORMAL) {
         glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 #if (NRIF_PLATFORM == NRIF_WINDOWS)
@@ -714,12 +781,21 @@ void SampleBase::CursorMode(int32_t mode) {
             ;
 #endif
     }
+#endif
 }
+
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+void SampleBase::SetNativeWindow(void* caMetalLayer, uint2 outputResolution, float contentScale) {
+    m_NRIWindow.metal.caMetalLayer = caMetalLayer;
+    m_OutputResolution = outputResolution;
+    m_ContentScale = contentScale;
+}
+#endif
 
 void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
 #if (NRIF_PLATFORM == NRIF_WINDOWS)
     std::string graphicsAPI = "D3D12";
-#elif (NRIF_PLATFORM == NRIF_COCOA && NRI_ENABLE_METAL_SHADER_CONVERTER) // samples use HLSL
+#elif ((NRIF_PLATFORM == NRIF_COCOA && NRI_ENABLE_METAL_SHADER_CONVERTER) || NRIF_PLATFORM == NRIF_UIKIT) // samples use HLSL
     std::string graphicsAPI = "METAL";
 #else
     std::string graphicsAPI = "VULKAN";

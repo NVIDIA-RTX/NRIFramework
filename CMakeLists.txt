@@ -26,7 +26,7 @@ message("NRI framework v${VERSION_MAJOR}.${VERSION_MINOR}")
 project(NRIFramework LANGUAGES C CXX)
 
 # Arm64?
-if((CMAKE_GENERATOR_PLATFORM MATCHES "ARM64") OR (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64"))
+if((CMAKE_GENERATOR_PLATFORM MATCHES "ARM64") OR (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64") OR IOS)
     set(IS_ARM64 TRUE)
 else()
     set(IS_ARM64 FALSE)
@@ -103,10 +103,14 @@ option(NRI_ENABLE_IMGUI_EXTENSION "" ON)
 add_subdirectory("External/NRI")
 
 # External/MathLib
+if(IOS)
+    set(CMAKE_SYSTEM_PROCESSOR arm64) # MathLib checks this variable to detect ARM and download "sse2neon"
+endif()
+
 add_subdirectory("External/MathLib")
 
-# External/MetalUtility
-if(APPLE)
+# External/MetalUtility (not needed on iOS: the platform layer owns the window)
+if(APPLE AND NOT IOS)
     find_library(COCOA_LIBRARY Cocoa REQUIRED)
     find_library(QUARTZ_CORE QuartzCore REQUIRED)
     add_library(MetalUtility SHARED "External/MetalUtility/MetalUtility.m")
@@ -130,7 +134,12 @@ fetchcontent_declare(
 )
 list(APPEND DEPS imgui)
 
-# GLFW
+# GLFW (iOS: headers only, GLFW doesn't support it)
+set(GLFW_FETCH_ARGS "")
+if(IOS)
+    set(GLFW_FETCH_ARGS SOURCE_SUBDIR "ignore CMakeLists.txt")
+endif()
+
 option(GLFW_BUILD_WAYLAND "" ${NRIF_USE_WAYLAND})
 option(GLFW_BUILD_EXAMPLES "" OFF)
 option(GLFW_BUILD_TESTS "" OFF)
@@ -141,6 +150,7 @@ fetchcontent_declare(
     glfw
     DOWNLOAD_EXTRACT_TIMESTAMP 1
     DOWNLOAD_NO_PROGRESS 1
+    ${GLFW_FETCH_ARGS}
     URL "https://github.com/glfw/glfw/archive/refs/tags/3.5.1.zip"
 )
 list(APPEND DEPS glfw)
@@ -238,7 +248,7 @@ target_sources(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         detex
-        glfw
+        $<$<NOT:$<BOOL:${IOS}>>:glfw>
     PUBLIC
         NRI
         imgui
@@ -255,7 +265,9 @@ target_include_directories(${PROJECT_NAME}
         "${glfw_SOURCE_DIR}/include"
 )
 
-if(APPLE)
+if(IOS)
+    # Nothing yet
+elseif(APPLE)
     target_link_libraries(${PROJECT_NAME}
         PRIVATE
             ${CMAKE_DL_LIBS}
