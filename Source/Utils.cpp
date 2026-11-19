@@ -543,6 +543,21 @@ bool utils::LoadTexture(const std::string& path, Texture& texture, bool computeA
     return true;
 }
 
+// A static texture from "_Data/Textures", or a 1x1 placeholder if the file is missing (for example, without the asset pack of the samples)
+static void LoadStaticTexture(const char* fileName, const uint8_t placeholder[4], utils::Texture& texture, bool computeAvgColorAndAlphaMode = false) {
+    const std::string& path = utils::GetFullPath(fileName, utils::DataFolder::TEXTURES);
+    if (std::filesystem::exists(path)) {
+        NRI_ABORT_ON_FALSE(utils::LoadTexture(path, texture, computeAvgColorAndAlphaMode));
+        return;
+    }
+
+    printf("WARNING: Texture '%s' is missing, using a 1x1 placeholder\n", path.c_str());
+
+    detexTexture** dTexture = nullptr;
+    detexLoadTextureFromMemory(DETEX_PIXEL_FORMAT_RGBA8, 1, 1, placeholder, &dTexture);
+    utils::PostProcessTexture(fileName, texture, computeAvgColorAndAlphaMode, dTexture, 1);
+}
+
 void utils::LoadTextureFromMemory(nri::Format format, uint32_t width, uint32_t height, const uint8_t* pixels, Texture& texture) {
     assert(format == nri::Format::R8_UNORM);
 
@@ -1429,31 +1444,34 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
     scene.textures.reserve(newCapacity);
 
     if (scene.textures.empty()) {
+        // Placeholders (RGBA8) for missing files
+        constexpr uint8_t black[4] = {0, 0, 0, 255};
+        constexpr uint8_t white[4] = {255, 255, 255, 255};
+        constexpr uint8_t magenta[4] = {255, 0, 255, 255};
+        constexpr uint8_t flatNormal[4] = {128, 128, 255, 255};
+        constexpr uint8_t zero[4] = {0, 0, 0, 0};
+
         { // StaticTexture::Black
             Texture* texture = new Texture;
-            const std::string& texPath = GetFullPath("black.png", DataFolder::TEXTURES);
-            NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
+            LoadStaticTexture("black.png", black, *texture);
             scene.textures.push_back(texture);
         }
 
         { // StaticTexture::White
             Texture* texture = new Texture;
-            const std::string& texPath = GetFullPath("white.png", DataFolder::TEXTURES);
-            NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
+            LoadStaticTexture("white.png", white, *texture);
             scene.textures.push_back(texture);
         }
 
         { // StaticTexture::Invalid
             Texture* texture = new Texture;
-            const std::string& texPath = GetFullPath("checkerboard0.dds", DataFolder::TEXTURES);
-            NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture, true));
+            LoadStaticTexture("checkerboard0.dds", magenta, *texture, true);
             scene.textures.push_back(texture);
         }
 
         { // StaticTexture::FlatNormal
             Texture* texture = new Texture;
-            const std::string& texPath = GetFullPath("flatnormal.png", DataFolder::TEXTURES);
-            NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
+            LoadStaticTexture("flatnormal.png", flatNormal, *texture);
             scene.textures.push_back(texture);
         }
 
@@ -1472,8 +1490,7 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
             snprintf(s, sizeof(s), "scrambling_ranking_128x128_2d_%uspp.png", 1 << i);
 
             Texture* texture = new Texture;
-            const std::string& texPath = GetFullPath(s, DataFolder::TEXTURES);
-            NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
+            LoadStaticTexture(s, zero, *texture);
             if (overrideFormat)
                 texture->OverrideFormat(nri::Format::RGBA8_UINT);
             scene.textures.push_back(texture);
@@ -1481,8 +1498,7 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
 
         { // StaticTexture::SobolSequence
             Texture* texture = new Texture;
-            const std::string& texPath = GetFullPath("sobol_256_4d.png", DataFolder::TEXTURES);
-            NRI_ABORT_ON_FALSE(LoadTexture(texPath, *texture));
+            LoadStaticTexture("sobol_256_4d.png", zero, *texture);
             if (overrideFormat)
                 texture->OverrideFormat(nri::Format::RGBA8_UINT);
             scene.textures.push_back(texture);
@@ -1561,7 +1577,7 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
                     assert(activeImage->buffer_view->size < std::numeric_limits<int>::max());
 
                     const uint8_t* data = ((const uint8_t*)activeImage->buffer_view->buffer->data) + activeImage->buffer_view->offset;
-                    isLoaded = LoadTextureFromMemory(std::string(activeImage->name), data,
+                    isLoaded = LoadTextureFromMemory(activeImage->name ? activeImage->name : "", data,
                         (int)activeImage->buffer_view->size, *tex, computeAlphaMode);
                 } else {
                     std::string filename = (normPath.parent_path() / activeImage->uri).string();
@@ -1601,12 +1617,13 @@ bool utils::LoadScene(const std::string& path, Scene& scene, bool allowUpdate) {
         material.alphaMode = useTransmission ? AlphaMode::TRANSPARENT : diffuseTexture->alphaMode;
 
         // TODO: hacks
-        material.isHair = strstr(gltfMaterial.name, "_hair") != 0 || strstr(gltfMaterial.name, "OmniHairBase") != 0;
-        material.isLeaf = strstr(gltfMaterial.name, "Foliage") != 0;
-        material.isSkin = strstr(gltfMaterial.name, "_skin") != 0;
+        const char* materialName = gltfMaterial.name ? gltfMaterial.name : ""; // the name is optional in glTF
+        material.isHair = strstr(materialName, "_hair") != 0 || strstr(materialName, "OmniHairBase") != 0;
+        material.isLeaf = strstr(materialName, "Foliage") != 0;
+        material.isSkin = strstr(materialName, "_skin") != 0;
 
         // TODO: remove strange polygon on the window in Kitchen scene
-        if (strstr(gltfMaterial.name, "Material_295"))
+        if (strstr(materialName, "Material_295"))
             material.alphaMode = AlphaMode::OFF;
 
         /*
