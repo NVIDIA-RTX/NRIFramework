@@ -36,6 +36,10 @@ if(APPLE)
     enable_language(OBJC)
 endif()
 
+if(IOS)
+    enable_language(OBJCXX)
+endif()
+
 # Enable grouping of source files into folders in IDEs
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -221,6 +225,10 @@ set(FRAMEWORK_SOURCE
     "Source/Timer.cpp"
     "Source/Utils.cpp"
 )
+if(IOS)
+    list(APPEND FRAMEWORK_SOURCE "Source/UIKit.mm")
+    set_source_files_properties("Source/UIKit.mm" PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+endif()
 source_group("Source"
     FILES
         ${FRAMEWORK_SOURCE}
@@ -266,7 +274,12 @@ target_include_directories(${PROJECT_NAME}
 )
 
 if(IOS)
-    # Nothing yet
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC
+            "-framework UIKit"
+            "-framework QuartzCore"
+            "-framework Foundation"
+    )
 elseif(APPLE)
     target_link_libraries(${PROJECT_NAME}
         PRIVATE
