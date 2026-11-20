@@ -18,11 +18,39 @@ static const char* g_SampleName = "";
 //==============================================================================================================================
 
 @interface NRIFMetalView : UIView
+@property(nonatomic) SampleBase* sample;
 @end
 
 @implementation NRIFMetalView
 + (Class)layerClass {
     return [CAMetalLayer class];
+}
+
+- (void)sendTouches:(NSSet<UITouch*>*)touches pressed:(BOOL)pressed {
+    if (!self.sample)
+        return;
+
+    UITouch* touch = [touches anyObject];
+    CGPoint point = [touch locationInView:self];
+    CGFloat scale = self.traitCollection.displayScale;
+
+    self.sample->SetTouch((float)(point.x * scale), (float)(point.y * scale), pressed);
+}
+
+- (void)touchesBegan:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event {
+    [self sendTouches:touches pressed:YES];
+}
+
+- (void)touchesMoved:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event {
+    [self sendTouches:touches pressed:YES];
+}
+
+- (void)touchesEnded:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event {
+    [self sendTouches:touches pressed:NO];
+}
+
+- (void)touchesCancelled:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event {
+    [self sendTouches:touches pressed:NO];
 }
 @end
 
@@ -70,6 +98,7 @@ static const char* g_SampleName = "";
 
     _sample = g_CreateSample();
     _sample->SetNativeWindow((__bridge void*)layer, outputResolution, (float)scale);
+    ((NRIFMetalView*)self.view).sample = _sample;
 
     // No command line on iOS: defaults only
     char* argv[] = {(char*)g_SampleName, nullptr};
@@ -87,6 +116,7 @@ static const char* g_SampleName = "";
     [link invalidate];
 
     _sample->EndRenderLoop();
+    ((NRIFMetalView*)self.view).sample = nullptr;
     delete _sample;
     _sample = nullptr;
 
@@ -120,6 +150,9 @@ static const char* g_SampleName = "";
 int NRIF_UIKitMain(int argc, char** argv, SampleBase* (*createSample)(), const char* sampleName) {
     g_CreateSample = createSample;
     g_SampleName = sampleName;
+
+    // Shaders and textures are looked up relative to the working directory ("_Shaders", "_Data"): use the app bundle
+    [[NSFileManager defaultManager] changeCurrentDirectoryPath:[[NSBundle mainBundle] bundlePath]];
 
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([NRIFAppDelegate class]));

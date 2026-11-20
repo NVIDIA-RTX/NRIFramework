@@ -790,6 +790,16 @@ void SampleBase::SetNativeWindow(void* caMetalLayer, uint2 outputResolution, flo
     m_OutputResolution = outputResolution;
     m_ContentScale = contentScale;
 }
+
+void SampleBase::SetTouch(float x, float y, bool pressed) {
+    if (HasUserInterface()) {
+        ImGuiIO& io = ImGui::GetIO();
+        io.AddMousePosEvent(x, y);
+        io.AddMouseButtonEvent(ImGuiMouseButton_Left, pressed);
+    }
+
+    m_ButtonState[(uint8_t)Button::Left] = pressed;
+}
 #endif
 
 void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {

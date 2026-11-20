@@ -272,6 +272,9 @@ public:
 #if (NRIF_PLATFORM == NRIF_UIKIT)
     // The platform layer creates the window ("CAMetalLayer*") and passes it here before "Create", "outputResolution" is in pixels
     void SetNativeWindow(void* caMetalLayer, uint2 outputResolution, float contentScale);
+
+    // Touch input: acts like the left mouse button, "x" and "y" are in pixels
+    void SetTouch(float x, float y, bool pressed);
 #endif
 
     // Input (not public)
