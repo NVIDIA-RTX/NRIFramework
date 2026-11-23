@@ -548,6 +548,7 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_VISIBLE, 0);
+    glfwWindowHint(GLFW_FOCUS_ON_SHOW, cmdLine.exist("noFocus") ? GLFW_FALSE : GLFW_TRUE);
     glfwWindowHint(GLFW_DECORATED, decorated ? 1 : 0);
     glfwWindowHint(GLFW_RESIZABLE, m_Resizable ? 1 : 0);
 
@@ -575,8 +576,8 @@ bool SampleBase::Create(int32_t argc, char** argv, const char* windowTitle) {
     }
 
 #if (NRIF_PLATFORM != NRIF_WAYLAND)
-    int32_t x = screenX + (screenW - (int32_t)windowResolution.x) / 2;
-    int32_t y = screenY + (screenH - (int32_t)windowResolution.y) / 2;
+    int32_t x = cmdLine.exist("x") ? cmdLine.get<int32_t>("x") : screenX + (screenW - (int32_t)windowResolution.x) / 2;
+    int32_t y = cmdLine.exist("y") ? cmdLine.get<int32_t>("y") : screenY + (screenH - (int32_t)windowResolution.y) / 2;
     glfwSetWindowPos(m_Window, x, y); // GLFW error[65548]: Wayland: The platform does not support setting the window position
 #endif
 
@@ -729,6 +730,8 @@ void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
     cmdLine.add<std::string>("scene", 's', "scene", false, m_SceneFile);
     cmdLine.add<uint32_t>("width", 'w', "output resolution width", false, m_OutputResolution.x);
     cmdLine.add<uint32_t>("height", 'h', "output resolution height", false, m_OutputResolution.y);
+    cmdLine.add<int32_t>("x", 'x', "window position X", false, 0);
+    cmdLine.add<int32_t>("y", 'y', "window position Y", false, 0);
     cmdLine.add<uint32_t>("frameNum", 'f', "close after N frames", false, m_FrameNum);
     cmdLine.add<double>("timeLimit", 't', "close after N seconds", false, m_TimeLimit);
     cmdLine.add<uint32_t>("adapter", 0, "Adapter index (0 - best)", false, m_AdapterIndex);
@@ -736,6 +739,7 @@ void SampleBase::InitCmdLineDefault(cmdline::parser& cmdLine) {
     cmdLine.add("debugAPI", 0, "enable graphics API validation layer");
     cmdLine.add("debugNRI", 0, "enable NRI validation layer");
     cmdLine.add("alwaysActive", 0, "continue to render if not in focus");
+    cmdLine.add("noFocus", 0, "show the window without taking focus");
 }
 
 void SampleBase::ReadCmdLineDefault(cmdline::parser& cmdLine) {
