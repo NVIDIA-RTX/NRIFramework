@@ -699,14 +699,13 @@ static void DecomposeAffine(const float4x4& transform, float3& translation, floa
         col0 = -col0;
     }
 
-    // https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
-    rotation.w = sqrt(max(0.0f, 1.0f + col0.x + col1.y + col2.z)) * 0.5f;
-    rotation.x = sqrt(max(0.0f, 1.0f + col0.x - col1.y - col2.z)) * 0.5f;
-    rotation.y = sqrt(max(0.0f, 1.0f - col0.x + col1.y - col2.z)) * 0.5f;
-    rotation.z = sqrt(max(0.0f, 1.0f - col0.x - col1.y + col2.z)) * 0.5f;
-    rotation.x = std::copysign(rotation.x, col1.z - col2.y);
-    rotation.y = std::copysign(rotation.y, col2.x - col0.z);
-    rotation.z = std::copysign(rotation.z, col0.y - col1.x);
+    const float4x4 rotationMatrix(
+        float4(col0, 0.0f),
+        float4(col1, 0.0f),
+        float4(col2, 0.0f),
+        float4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    rotation = rotationMatrix.GetQuaternion();
 }
 
 static inline bool IsGltfPrimitiveSupported(const cgltf_primitive& primitive) {
