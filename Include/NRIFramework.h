@@ -17,15 +17,21 @@
 #define NRIF_X11     1
 #define NRIF_WAYLAND 2
 #define NRIF_COCOA   3
+#define NRIF_UIKIT   4
 
 #if defined(_WIN32)
 #    define NRIF_PLATFORM NRIF_WINDOWS
 #    define GLFW_EXPOSE_NATIVE_WIN32
 #    define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(__APPLE__)
-#    define NRIF_PLATFORM NRIF_COCOA
-#    define GLFW_EXPOSE_NATIVE_COCOA
-#    define VK_USE_PLATFORM_METAL_EXT
+#    include <TargetConditionals.h>
+#    if (TARGET_OS_IPHONE && !TARGET_OS_MACCATALYST)
+#        define NRIF_PLATFORM NRIF_UIKIT
+#    else
+#        define NRIF_PLATFORM NRIF_COCOA
+#        define GLFW_EXPOSE_NATIVE_COCOA
+#        define VK_USE_PLATFORM_METAL_EXT
+#    endif
 #elif (defined(__linux__) && NRIF_USE_WAYLAND)
 #    define NRIF_PLATFORM NRIF_WAYLAND
 #    define GLFW_EXPOSE_NATIVE_WAYLAND
@@ -259,6 +265,18 @@ public:
     bool Create(int32_t argc, char** argv, const char* windowTitle);
     void RenderLoop();
 
+    // The frame loop split into steps, for platforms where the OS owns the loop (UIKit)
+    bool RenderLoopStep(); // returns "false" when the loop must stop
+    void EndRenderLoop();  // prints statistics
+
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+    // The platform layer creates the window ("CAMetalLayer*") and passes it here before "Create", "outputResolution" is in pixels
+    void SetNativeWindow(void* caMetalLayer, uint2 outputResolution, float contentScale);
+
+    // Touch input: acts like the left mouse button, "x" and "y" are in pixels
+    void SetTouch(float x, float y, bool pressed);
+#endif
+
     // Input (not public)
 public:
     std::array<bool, (size_t)Key::NUM> m_KeyState = {};
@@ -277,7 +295,13 @@ private:
     // Rendering
     nri::Window m_NRIWindow = {};
     double m_TimeLimit = 1e38;
+    double m_ActiveTime = 0.0;
+    double m_ImguiTimeStampPrev = 0.0;
     uint32_t m_FrameNum = uint32_t(-1);
+    uint32_t m_FrameIndex = 0;
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+    float m_ContentScale = 1.0f;
+#endif
 };
 
 #define _STRINGIFY(s) #s
@@ -293,6 +317,19 @@ private:
         exit(NRIF_FAIL); \
     }
 
+#if (NRIF_PLATFORM == NRIF_UIKIT)
+// UIKit owns the process entry point and the frame loop (see "Source/UIKit.mm")
+int NRIF_UIKitMain(int argc, char** argv, SampleBase* (*createSample)(), const char* sampleName);
+
+#    define SAMPLE_MAIN(className, memoryAllocationIndexForBreak) \
+        static SampleBase* NRIF_CreateSample() { \
+            return new className; \
+        } \
+        int main(int argc, char** argv) { \
+            SampleBase::EnableMemoryLeakDetection(memoryAllocationIndexForBreak); \
+            return NRIF_UIKitMain(argc, argv, NRIF_CreateSample, STRINGIFY(PROJECT_NAME)); \
+        }
+#else
 #define SAMPLE_MAIN(className, memoryAllocationIndexForBreak) \
     SampleBase* g_sample = nullptr; \
     void Destroy() { \
@@ -308,5 +345,6 @@ private:
             g_sample->RenderLoop(); \
         return result ? NRIF_OK : NRIF_FAIL; \
     }
+#endif
 
 #endif // __cplusplus
